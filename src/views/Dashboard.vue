@@ -1,198 +1,337 @@
+<!-- MachineService.js -->
+// src/api/MachineService.js
+import axios from 'axios';
+
+const API_URL = 'your-api-base-url';
+
+export default {
+  getMachines() {
+    return axios.get(`${API_URL}/machines`);
+  },
+  
+  updateMachine(id, data) {
+    return axios.put(`${API_URL}/machines/${id}`, data);
+  },
+  
+  deleteMachine(id) {
+    return axios.delete(`${API_URL}/machines/${id}`);
+  }
+};
+
+<!-- Dashboard.vue -->
 <template>
   <div class="dashboard-container">
-    <h1>Dashboard</h1>
+    <!-- Header -->
+    <h1 class="header">Machine Dashboard</h1>
+
+    <!-- Controls Section -->
     <div class="controls">
-      <!-- Search Section -->
       <div class="search-bar">
-        <InputText
-          v-model="searchTerm"
-          placeholder="Search..."
-          @input="filterResources"
-          class="p-inputtext-lg w-full"
+        <InputText 
+          v-model="searchTerm" 
+          placeholder="Search machines..." 
+          class="p-inputtext-lg w-full" 
+          @input="filterResources" 
         />
-        <Button
-          icon="pi pi-search"
-          class="p-button-outlined p-button-primary"
+        <Button 
+          icon="pi pi-search" 
+          class="p-button-outlined p-button-primary ml-2" 
         />
       </div>
 
-      <!-- Filter Button -->
-      <div class="filter-section">
-        <Button
-          label="Filter"
-          icon="pi pi-filter"
-          class="p-button-outlined p-button-secondary"
-          @click="showFilterOverlay = true"
-        />
+      <Button 
+        label="Filter" 
+        icon="pi pi-filter" 
+        class="p-button-outlined p-button-secondary" 
+        @click="showFilterOverlay = true" 
+      />
+    </div>
+
+    <!-- Loading State -->
+    <div v-if="loading" class="loading-overlay">
+      <ProgressSpinner />
+    </div>
+
+    <!-- Error Message -->
+    <Message v-if="error" severity="error" :text="error" class="mb-4" />
+
+    <!-- Resources Grid -->
+    <div class="resources">
+      <h2>Automation Systems</h2>
+      <div 
+        v-for="machine in filteredResources" 
+        :key="machine._id" 
+        class="resource-card"
+      >
+        <div class="resource-details">
+          <h3>{{ machine.name }}</h3>
+          <p>{{ machine.description }}</p>
+          <Tag 
+            :severity="machine.healthStatus === 'healthy' ? 'success' : 'danger'"
+            class="health-tag"
+          >
+            {{ machine.healthStatus }}
+          </Tag>
+        </div>
+
+        <div class="resource-actions">
+          <Button 
+            icon="pi pi-info-circle" 
+            class="p-button-rounded p-button-info" 
+            @click="showResourceDetails(machine)" 
+          />
+          <Button 
+            icon="pi pi-pencil" 
+            class="p-button-rounded p-button-warning" 
+            @click="editResource(machine)" 
+          />
+          <Button 
+            icon="pi pi-trash" 
+            class="p-button-rounded p-button-danger" 
+            @click="confirmDelete(machine)" 
+          />
+        </div>
       </div>
     </div>
 
     <!-- Filter Overlay -->
     <Transition name="fade">
-      <div v-if="showFilterOverlay" class="filter-overlay">
+      <div v-if="showFilterOverlay" class="overlay">
         <div class="overlay-content">
-          <h2>Filter by Health Status</h2>
-          <i class="pi pi-times close-icon" @click="showFilterOverlay = false"></i>
-          <div class="filter-option">
-            <Checkbox
-              inputId="healthy"
-              value="healthy"
-              v-model="healthStatusFilter"
-              @change="filterResources"
-            />
-            <label for="healthy">Healthy</label>
+          <div class="overlay-header">
+            <h2>Filter by Health Status</h2>
+            <i class="pi pi-times close-icon" @click="showFilterOverlay = false"></i>
           </div>
-          <div class="filter-option">
-            <Checkbox
-              inputId="unhealthy"
-              value="unhealthy"
-              v-model="healthStatusFilter"
-              @change="filterResources"
+          <div class="filter-options">
+            <div class="filter-option">
+              <Checkbox 
+                inputId="healthy" 
+                value="healthy" 
+                v-model="healthStatusFilter" 
+                @change="filterResources" 
+              />
+              <label for="healthy" class="filter-label">Healthy</label>
+            </div>
+            <div class="filter-option">
+              <Checkbox 
+                inputId="unhealthy" 
+                value="unhealthy" 
+                v-model="healthStatusFilter" 
+                @change="filterResources" 
+              />
+              <label for="unhealthy" class="filter-label">Unhealthy</label>
+            </div>
+          </div>
+          <div class="overlay-footer">
+            <Button 
+              label="Apply Filters" 
+              class="p-button-primary" 
+              @click="showFilterOverlay = false" 
             />
-            <label for="unhealthy">Unhealthy</label>
           </div>
         </div>
       </div>
     </Transition>
 
-    <!-- Resource Cards -->
-    <div class="resources">
-      <h2>Automation Systems</h2>
-      <div
-        class="resource-card"
-        v-for="(resource, index) in filteredResources"
-        :key="index"
-      >
-        <div class="resource-details">
-          <h3>{{ resource.name }}</h3>
-          <p>{{ resource.description }}</p>
-        </div>
-        <div class="resource-actions">
-          <Button
-            icon="pi pi-info-circle"
-            class="p-button-rounded p-button-info"
-            @click="showResourceDetails(resource)"
-          />
-          <Button
-            icon="pi pi-pencil"
-            class="p-button-rounded p-button-warning"
-            @click="editResource(resource)"
-          />
-          <Button
-            icon="pi pi-trash"
-            class="p-button-rounded p-button-danger"
-            @click="deleteResource(index)"
-          />
-        </div>
-      </div>
-    </div>
-
     <!-- Resource Details Overlay -->
-    <div v-if="showOverlayinfo && shownResource" class="overlay">
-      <div class="overlay-content">
-        <i class="pi pi-times close-icon" @click="showOverlayinfo = false"></i>
-        <h2>{{ shownResource.name }}</h2>
-        <p><strong>Description:</strong> {{ shownResource.description }}</p>
-        <p><strong>Health Status:</strong> {{ shownResource.healthStatus }}</p>
-        <p><strong>Type:</strong> {{ shownResource.type }}</p>
-        <p><strong>Automation Project:</strong> {{ shownResource.automationProject }}</p>
+    <Transition name="fade">
+      <div v-if="showDetailsOverlay" class="overlay">
+        <div class="overlay-content">
+          <div class="overlay-header">
+            <h2>{{ selectedResource?.name }}</h2>
+            <i class="pi pi-times close-icon" @click="showDetailsOverlay = false"></i>
+          </div>
+          <div v-if="selectedResource" class="resource-details-content">
+            <p><strong>Description:</strong> {{ selectedResource.description }}</p>
+            <p><strong>Health Status:</strong> {{ selectedResource.healthStatus }}</p>
+            <p><strong>Type:</strong> {{ selectedResource.type }}</p>
+            <p><strong>Project:</strong> {{ selectedResource.automationProject }}</p>
+          </div>
+          <div class="overlay-footer">
+            <Button 
+              label="Close" 
+              class="p-button-outlined" 
+              @click="showDetailsOverlay = false" 
+            />
+          </div>
+        </div>
       </div>
-    </div>
+    </Transition>
 
     <!-- Edit Resource Overlay -->
-    <div v-if="showOverlayEdit && shownResource" class="overlay">
-      <div class="overlay-content">
-        <i class="pi pi-times close-icon" @click="showOverlayEdit = false"></i>
-        <form @submit.prevent="handleEditResource">
-          <h2>Edit Resource</h2>
-          <div class="form-field">
-            <label>Description</label>
-            <InputText v-model="shownResource.description" />
+    <Transition name="fade">
+      <div v-if="showEditOverlay" class="overlay">
+        <div class="overlay-content">
+          <div class="overlay-header">
+            <h2>Edit Resource</h2>
+            <i class="pi pi-times close-icon" @click="showEditOverlay = false"></i>
           </div>
-          <div class="form-field">
-            <label>Health Status</label>
-            <InputText v-model="shownResource.healthStatus" />
+          <div v-if="editingResource" class="p-fluid">
+            <div class="form-field">
+              <label>Description</label>
+              <InputText v-model="editingResource.description" />
+            </div>
+            <div class="form-field">
+              <label>Health Status</label>
+              <Dropdown 
+                v-model="editingResource.healthStatus" 
+                :options="['healthy', 'unhealthy']" 
+              />
+            </div>
+            <div class="form-field">
+              <label>Type</label>
+              <InputText v-model="editingResource.type" />
+            </div>
+            <div class="form-field">
+              <label>Project</label>
+              <InputText v-model="editingResource.automationProject" />
+            </div>
           </div>
-          <div class="form-field">
-            <label>Type</label>
-            <InputText v-model="shownResource.type" />
+          <div class="overlay-footer">
+            <Button 
+              label="Cancel" 
+              class="p-button-outlined" 
+              @click="showEditOverlay = false" 
+            />
+            <Button 
+              label="Save" 
+              class="p-button-primary" 
+              @click="saveResource" 
+            />
           </div>
-          <div class="form-field">
-            <label>Automation Project</label>
-            <InputText v-model="shownResource.automationProject" />
-          </div>
-          <Button type="submit" label="Save" class="p-button-success" />
-        </form>
+        </div>
       </div>
-    </div>
+    </Transition>
+
+    <!-- Delete Confirmation Overlay -->
+    <Transition name="fade">
+      <div v-if="showDeleteOverlay" class="overlay">
+        <div class="overlay-content">
+          <div class="overlay-header">
+            <h2>Confirm Delete</h2>
+            <i class="pi pi-times close-icon" @click="showDeleteOverlay = false"></i>
+          </div>
+          <p>Are you sure you want to delete this resource?</p>
+          <div class="overlay-footer">
+            <Button 
+              label="Cancel" 
+              class="p-button-outlined" 
+              @click="showDeleteOverlay = false" 
+            />
+            <Button 
+              label="Delete" 
+              class="p-button-danger" 
+              @click="deleteResourceConfirmed" 
+            />
+          </div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
 <script>
+import { ref, onMounted } from 'vue';
+import MachineService from '../api/MachineServices';
 import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
+import ProgressSpinner from 'primevue/progressspinner';
+import Message from 'primevue/message';
+import Tag from 'primevue/tag';
+import Dropdown from 'primevue/dropdown';
 
 export default {
   name: 'Dashboard',
-  components: { InputText, Button, Checkbox },
+  components: {
+    InputText,
+    Button,
+    Checkbox,
+    ProgressSpinner,
+    Message,
+    Tag,
+    Dropdown,
+  },
   data() {
     return {
-      resources: [
-        {
-          name: 'System A',
-          description: 'Description A',
-          healthStatus: 'healthy',
-          type: 'Type A',
-          automationProject: 'Project A',
-        },
-        {
-          name: 'System B',
-          description: 'Description B',
-          healthStatus: 'unhealthy',
-          type: 'Type B',
-          automationProject: 'Project B',
-        },
-      ],
+      resources: [],
       filteredResources: [],
       searchTerm: '',
       healthStatusFilter: [],
+      loading: false,
+      error: null,
       showFilterOverlay: false,
-      showOverlayinfo: false,
-      showOverlayEdit: false,
-      shownResource: null,
+      showDetailsOverlay: false,
+      showEditOverlay: false,
+      showDeleteOverlay: false,
+      selectedResource: null,
+      editingResource: null,
+      resourceToDelete: null,
     };
   },
-  created() {
-    this.filterResources();
+  async created() {
+    await this.fetchResources();
   },
   methods: {
+    async fetchResources() {
+      try {
+        this.loading = true;
+        const response = await MachineService.getMachines();
+        this.resources = response.data;
+        this.filterResources();
+      } catch (error) {
+        this.error = error.response?.data?.message || 'Failed to fetch resources';
+      } finally {
+        this.loading = false;
+      }
+    },
     filterResources() {
-      this.filteredResources = this.resources.filter((resource) => {
-        const matchesSearch = this.searchTerm
-          ? resource.name.toLowerCase().includes(this.searchTerm.toLowerCase())
-          : true;
-        const matchesFilter = this.healthStatusFilter.length
-          ? this.healthStatusFilter.includes(resource.healthStatus)
-          : true;
+      this.filteredResources = this.resources.filter(resource => {
+        const matchesSearch = !this.searchTerm || 
+          resource.name.toLowerCase().includes(this.searchTerm.toLowerCase());
+        const matchesFilter = !this.healthStatusFilter.length || 
+          this.healthStatusFilter.includes(resource.healthStatus);
         return matchesSearch && matchesFilter;
       });
     },
     showResourceDetails(resource) {
-      this.shownResource = resource;
-      this.showOverlayinfo = true;
+      this.selectedResource = resource;
+      this.showDetailsOverlay = true;
     },
     editResource(resource) {
-      this.shownResource = resource;
-      this.showOverlayEdit = true;
+      this.editingResource = { ...resource };
+      this.showEditOverlay = true;
     },
-    handleEditResource() {
-      this.showOverlayEdit = false;
-      this.filterResources();
+    async saveResource() {
+      try {
+        this.loading = true;
+        await MachineService.updateMachine(
+          this.editingResource._id,
+          this.editingResource
+        );
+        await this.fetchResources();
+        this.showEditOverlay = false;
+      } catch (error) {
+        this.error = error.response?.data?.message || 'Failed to update resource';
+      } finally {
+        this.loading = false;
+      }
     },
-    deleteResource(index) {
-      this.resources.splice(index, 1);
-      this.filterResources();
+    confirmDelete(resource) {
+      this.resourceToDelete = resource;
+      this.showDeleteOverlay = true;
+    },
+    async deleteResourceConfirmed() {
+      try {
+        this.loading = true;
+        await MachineService.deleteMachine(this.resourceToDelete._id);
+        await this.fetchResources();
+        this.showDeleteOverlay = false;
+      } catch (error) {
+        this.error = error.response?.data?.message || 'Failed to delete resource';
+      } finally {
+        this.loading = false;
+      }
     },
   },
 };
@@ -201,27 +340,61 @@ export default {
 <style scoped>
 .dashboard-container {
   padding: 20px;
+  background-color: var(--background-color);
+  min-height: 100vh;
 }
-.header h1 {
-  color: var(--text-color);
+
+.header {
+  font-size: 2rem;
+  margin-bottom: 1rem;
 }
+
 .controls {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   margin-bottom: 20px;
+}
+
+.search-bar {
+  display: flex;
+  gap: 10px;
+  flex-grow: 1;
+}
+
+.resources {
+  margin-top: 20px;
 }
 
 .resource-card {
   background: var(--surface-color);
-  color: var(--text-color);
-  box-shadow: 0px 2px 6px var(--border-color);
-  padding: 15px;
-  border-radius: 8px;
-  margin-bottom: 1rem;
+  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  transition: transform 0.2s;
 }
 
-.overlay,
-.filter-overlay {
+.resource-card:hover {
+  transform: translateY(-2px);
+}
+
+.resource-details h3 {
+  margin: 0;
+}
+
+.health-tag {
+  margin-top: 10px;
+}
+
+.resource-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+/* Overlay Styles */
+.overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -229,8 +402,8 @@ export default {
   height: 100vh;
   background: rgba(0, 0, 0, 0.5);
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   z-index: 1000;
 }
 
@@ -245,20 +418,94 @@ export default {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
 
-.form-field {
+.overlay-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.overlay-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.close-icon {
+  cursor: pointer;
+  font-size: 1.5rem;
+  color: var(--text-color-secondary);
+}
+
+.close-icon:hover {
+  color: var(--text-color);
+}
+
+.overlay-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--surface-border);
+}
+
+.form-field {
+  margin-bottom: 1.5rem;
 }
 
 .form-field label {
   display: block;
   margin-bottom: 0.5rem;
-  color: var(--text-color);
+  font-weight: 500;
 }
 
-.resource-actions {
+.filter-options {
+  margin: 1.5rem 0;
+}
+
+.filter-option {
   display: flex;
-  gap: 1rem;
   align-items: center;
-  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+.filter-label {
+  margin-left: 0.75rem;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.resource-details-content {
+  margin: 1rem 0;
+}
+
+.resource-details-content p {
+  margin-bottom: 0.75rem;
+}
+
+/* Transitions */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>
