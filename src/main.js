@@ -15,8 +15,7 @@ import '@fontsource/nunito';  // Font
 import PrimeVue from 'primevue/config';
 import Aura from '@primevue/themes/aura'; // Theme
 import 'primeicons/primeicons.css'; // Import PrimeIcons CSS
-
-
+import './styles/theme.css'; // Import global styles
 // Create the Vue app
 const app = createApp(App);
 app.use(PrimeVue, { theme:{ preset: Aura, }});
