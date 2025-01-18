@@ -1,0 +1,36 @@
+/* PanelMenu Overrides */
+.p-panelmenu {
+    background-color: var(--menu-bg) !important;
+  }
+  
+  .p-panelmenu .p-panelmenu-header-link {
+    background-color: var(--menu-bg) !important;
+    color: var(--menu-text) !important;
+    border: none !important;
+  }
+  
+  .p-panelmenu .p-menuitem-link {
+    background-color: var(--menu-bg) !important;
+    color: var(--menu-text) !important;
+  }
+  
+  .p-panelmenu .p-menuitem-link:hover {
+    background-color: var(--menu-hover-bg) !important;
+  }
+  
+  .p-panelmenu .p-menuitem-link.router-link-active {
+    background-color: var(--menu-hover-bg) !important;
+    color: var(--primary-color) !important;
+  }
+  
+  /* Input Fields */
+  .p-inputtext {
+    background-color: var(--input-bg) !important;
+    color: var(--text-color) !important;
+  }
+  
+  /* Checkbox Styling */
+  .p-checkbox-box {
+    background: var(--checkbox-bg) !important;
+  }
+  
