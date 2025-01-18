@@ -1,141 +1,128 @@
 <template>
-  <div class="layout-wrapper">
-    <!-- Sidebar -->
-    <div class="sidebar">
-      <PanelMenu :model="menuItems" class="sidebar-menu" />
+  <div class="dashboard-container">
+    <h1>Dashboard</h1>
+    <div class="controls">
+      <!-- Search Section -->
+      <div class="search-bar">
+        <InputText
+          v-model="searchTerm"
+          placeholder="Search..."
+          @input="filterResources"
+          class="p-inputtext-lg w-full"
+        />
+        <Button
+          icon="pi pi-search"
+          class="p-button-outlined p-button-primary"
+        />
+      </div>
+
+      <!-- Filter Button -->
+      <div class="filter-section">
+        <Button
+          label="Filter"
+          icon="pi pi-filter"
+          class="p-button-outlined p-button-secondary"
+          @click="showFilterOverlay = true"
+        />
+      </div>
     </div>
 
-    <!-- Main Content -->
-    <div class="main-content">
-      <div class="dashboard-container">
-        <!-- Header Section -->
-        <div class="header">
-          <h1>Data Portal</h1>
-        </div>
-
-        <!-- Search and Filter Section -->
-        <div class="controls">
-          <div class="search-bar">
-            <InputText
-              v-model="searchTerm"
-              placeholder="Search..."
-              @input="filterResources"
-              class="p-inputtext-lg w-full"
+    <!-- Filter Overlay -->
+    <Transition name="fade">
+      <div v-if="showFilterOverlay" class="filter-overlay">
+        <div class="overlay-content">
+          <h2>Filter by Health Status</h2>
+          <i class="pi pi-times close-icon" @click="showFilterOverlay = false"></i>
+          <div class="filter-option">
+            <Checkbox
+              inputId="healthy"
+              value="healthy"
+              v-model="healthStatusFilter"
+              @change="filterResources"
             />
-            <Button
-              icon="pi pi-search"
-              class="p-button-outlined p-button-primary"
+            <label for="healthy">Healthy</label>
+          </div>
+          <div class="filter-option">
+            <Checkbox
+              inputId="unhealthy"
+              value="unhealthy"
+              v-model="healthStatusFilter"
+              @change="filterResources"
             />
-          </div>
-
-          <div class="filter-section">
-            <Button
-              label="Filter"
-              icon="pi pi-filter"
-              class="p-button-outlined p-button-secondary"
-              @click="showFilterOverlay = true"
-            />
+            <label for="unhealthy">Unhealthy</label>
           </div>
         </div>
+      </div>
+    </Transition>
 
-        <!-- Filter Overlay -->
-        <Transition name="fade">
-          <div v-if="showFilterOverlay" class="filter-overlay">
-            <div class="overlay-content">
-              <h2>Filter by Health Status</h2>
-              <i class="pi pi-times close-icon" @click="showFilterOverlay = false"></i>
-              <div class="filter-option">
-                <Checkbox
-                  inputId="healthy"
-                  value="healthy"
-                  v-model="healthStatusFilter"
-                  @change="filterResources"
-                />
-                <label for="healthy">Healthy</label>
-              </div>
-              <div class="filter-option">
-                <Checkbox
-                  inputId="unhealthy"
-                  value="unhealthy"
-                  v-model="healthStatusFilter"
-                  @change="filterResources"
-                />
-                <label for="unhealthy">Unhealthy</label>
-              </div>
-            </div>
-          </div>
-        </Transition>
-
-        <!-- Resource Section -->
-        <div class="resources">
-          <h2>Automation Systems</h2>
-          <div
-            class="resource-card"
-            v-for="(resource, index) in filteredResources"
-            :key="index"
-          >
-            <div class="resource-details">
-              <h3>{{ resource.name }}</h3>
-              <p>{{ resource.description }}</p>
-            </div>
-            <div class="resource-actions">
-              <Button
-                icon="pi pi-info-circle"
-                class="p-button-rounded p-button-info"
-                @click="showResourceDetails(resource)"
-              />
-              <Button
-                icon="pi pi-pencil"
-                class="p-button-rounded p-button-warning"
-                @click="editResource(resource)"
-              />
-              <Button
-                icon="pi pi-trash"
-                class="p-button-rounded p-button-danger"
-                @click="deleteResource(index)"
-              />
-            </div>
-          </div>
+    <!-- Resource Cards -->
+    <div class="resources">
+      <h2>Automation Systems</h2>
+      <div
+        class="resource-card"
+        v-for="(resource, index) in filteredResources"
+        :key="index"
+      >
+        <div class="resource-details">
+          <h3>{{ resource.name }}</h3>
+          <p>{{ resource.description }}</p>
         </div>
-
-        <!-- Resource Details Overlay -->
-        <div v-if="showOverlayinfo && shownResource" class="overlay">
-          <div class="overlay-content">
-            <i class="pi pi-times close-icon" @click="showOverlayinfo = false"></i>
-            <h2>{{ shownResource.name }}</h2>
-            <p><strong>Description:</strong> {{ shownResource.description }}</p>
-            <p><strong>Health Status:</strong> {{ shownResource.healthStatus }}</p>
-            <p><strong>Type:</strong> {{ shownResource.type }}</p>
-            <p><strong>Automation Project:</strong> {{ shownResource.automationProject }}</p>
-          </div>
+        <div class="resource-actions">
+          <Button
+            icon="pi pi-info-circle"
+            class="p-button-rounded p-button-info"
+            @click="showResourceDetails(resource)"
+          />
+          <Button
+            icon="pi pi-pencil"
+            class="p-button-rounded p-button-warning"
+            @click="editResource(resource)"
+          />
+          <Button
+            icon="pi pi-trash"
+            class="p-button-rounded p-button-danger"
+            @click="deleteResource(index)"
+          />
         </div>
+      </div>
+    </div>
 
-        <!-- Edit Resource Overlay -->
-        <div v-if="showOverlayEdit && shownResource" class="overlay">
-          <div class="overlay-content">
-            <i class="pi pi-times close-icon" @click="showOverlayEdit = false"></i>
-            <form @submit.prevent="handleEditResource">
-              <h2>Edit Resource</h2>
-              <div class="form-field">
-                <label>Description</label>
-                <InputText v-model="shownResource.description" />
-              </div>
-              <div class="form-field">
-                <label>Health Status</label>
-                <InputText v-model="shownResource.healthStatus" />
-              </div>
-              <div class="form-field">
-                <label>Type</label>
-                <InputText v-model="shownResource.type" />
-              </div>
-              <div class="form-field">
-                <label>Automation Project</label>
-                <InputText v-model="shownResource.automationProject" />
-              </div>
-              <Button type="submit" label="Save" class="p-button-success" />
-            </form>
+    <!-- Resource Details Overlay -->
+    <div v-if="showOverlayinfo && shownResource" class="overlay">
+      <div class="overlay-content">
+        <i class="pi pi-times close-icon" @click="showOverlayinfo = false"></i>
+        <h2>{{ shownResource.name }}</h2>
+        <p><strong>Description:</strong> {{ shownResource.description }}</p>
+        <p><strong>Health Status:</strong> {{ shownResource.healthStatus }}</p>
+        <p><strong>Type:</strong> {{ shownResource.type }}</p>
+        <p><strong>Automation Project:</strong> {{ shownResource.automationProject }}</p>
+      </div>
+    </div>
+
+    <!-- Edit Resource Overlay -->
+    <div v-if="showOverlayEdit && shownResource" class="overlay">
+      <div class="overlay-content">
+        <i class="pi pi-times close-icon" @click="showOverlayEdit = false"></i>
+        <form @submit.prevent="handleEditResource">
+          <h2>Edit Resource</h2>
+          <div class="form-field">
+            <label>Description</label>
+            <InputText v-model="shownResource.description" />
           </div>
-        </div>
+          <div class="form-field">
+            <label>Health Status</label>
+            <InputText v-model="shownResource.healthStatus" />
+          </div>
+          <div class="form-field">
+            <label>Type</label>
+            <InputText v-model="shownResource.type" />
+          </div>
+          <div class="form-field">
+            <label>Automation Project</label>
+            <InputText v-model="shownResource.automationProject" />
+          </div>
+          <Button type="submit" label="Save" class="p-button-success" />
+        </form>
       </div>
     </div>
   </div>
@@ -145,11 +132,10 @@
 import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
-import PanelMenu from 'primevue/panelmenu';
 
 export default {
   name: 'Dashboard',
-  components: { InputText, Button, Checkbox, PanelMenu },
+  components: { InputText, Button, Checkbox },
   data() {
     return {
       resources: [
@@ -175,18 +161,6 @@ export default {
       showOverlayinfo: false,
       showOverlayEdit: false,
       shownResource: null,
-      menuItems: [
-        {
-          items: [
-            { label: 'Dashboard', icon: 'pi pi-home', to: '/dashboard' },
-            { label: 'Profile', icon: 'pi pi-user', to: '/profile' },
-            { label: 'Graphs & Charts', icon: 'pi pi-chart-bar', to: '/graphs' },
-            { label: 'Visualizations', icon: 'pi pi-chart-pie', to: '/visualizations' },
-            { label: 'Error Logs', icon: 'pi pi-exclamation-circle', to: '/logs' },
-            { label: 'Alerts', icon: 'pi pi-bell', to: '/alerts' },
-          ],
-        },
-      ],
     };
   },
   created() {
@@ -224,108 +198,13 @@ export default {
 };
 </script>
 
-<style>
-/* Global styles for the theme */
-:root {
-  --primary-color: #2c3e50;
-  --background-color: #f8f9fa;
-  --surface-color: #ffffff;
-  --text-color: #2c3e50;
-  --border-color: rgba(0, 0, 0, 0.1);
-  --menu-bg: #ffffff;
-  --menu-text: #2c3e50;
-  --menu-hover-bg: #f8f9fa;
-  --menu-active-bg: #e9ecef;
-}
-
-.dark-mode {
-  --primary-color: #64b5f6;
-  --background-color: #121212;
-  --surface-color: #1e1e1e;
-  --text-color: #e0e0e0;
-  --border-color: rgba(255, 255, 255, 0.1);
-  --menu-bg: #1e1e1e;
-  --menu-text: #e0e0e0;
-  --menu-hover-bg: #2d2d2d;
-  --menu-active-bg: #363636;
-}
-
-/* PanelMenu Global Styles */
-.p-panelmenu .p-panelmenu-header > a {
-  color: var(--menu-text) !important;
-  background-color: var(--menu-bg) !important;
-  border: none !important;
-}
-
-.p-panelmenu .p-menuitem-link {
-  color: var(--menu-text) !important;
-  background-color: var(--menu-bg) !important;
-}
-
-.p-panelmenu .p-menuitem-text {
-  color: var(--menu-text) !important;
-}
-
-.p-panelmenu .p-menuitem-icon,
-.p-panelmenu .p-panelmenu-icon {
-  color: var(--menu-text) !important;
-}
-
-.p-panelmenu .p-panelmenu-content {
-  background-color: var(--menu-bg) !important;
-  border: none !important;
-}
-
-.p-panelmenu .p-menuitem-link:not(.p-disabled):hover {
-  background-color: var(--menu-hover-bg) !important;
-}
-
-.p-panelmenu .p-menuitem-link.router-link-active {
-  background-color: var(--menu-active-bg) !important;
-}
-
-/* Close icon styling */
-.close-icon {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  cursor: pointer;
-  color: var(--text-color);
-}
-</style>
-
 <style scoped>
-.layout-wrapper {
-  display: flex;
-  min-height: 100vh;
-}
-
-.sidebar {
-  width: 280px;
-  background-color: var(--menu-bg);
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  padding-top: 2rem;
-}
-
-.sidebar-menu {
-  padding: 1rem;
-  height: 100%;
-}
-
-.main-content {
-  flex: 1;
-  background-color: var(--background-color);
-  color: var(--text-color);
-}
-
 .dashboard-container {
   padding: 20px;
 }
-
 .header h1 {
   color: var(--text-color);
 }
-
 .controls {
   display: flex;
   justify-content: space-between;
@@ -381,12 +260,5 @@ export default {
   gap: 1rem;
   align-items: center;
   margin-top: 1rem;
-}
-
-.search-bar {
-  display: flex;
-  gap: 1rem;
-  flex: 1;
-  margin-right: 1rem;
 }
 </style>

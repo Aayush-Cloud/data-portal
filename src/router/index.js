@@ -1,31 +1,37 @@
-import { createRouter, createWebHistory } from "vue-router"; // Vue 3 syntax
-import Login from "../views/Login.vue";
-import Dashboard from "../views/Dashboard.vue";
+import { createRouter, createWebHistory } from 'vue-router';
+import Login from '../views/Login.vue';
+import MainLayout from '../views/MainLayout.vue'; // Parent layout component
+import Dashboard from '../views/Dashboard.vue';
+import GraphView from '../views/GraphView.vue';
 
 const routes = [
   {
-    path: "/",
-    name: "login",
+    path: '/',
+    name: 'login',
     component: Login,
   },
   {
-    path: "/dashboard",
-    name: "dashboard",
-    component: Dashboard,
+    path: '/app',
+    component: MainLayout, // Use MainLayout as the parent route
+    children: [
+      { path: 'dashboard', name: 'dashboard', component: Dashboard },
+      { path: 'graphs', name: 'graphs', component: GraphView },
+      // Add other routes here
+    ],
     beforeEnter: (to, from, next) => {
-      // Protect the route
-      const token = localStorage.getItem("jwtToken");
+      // Protect the parent route and all its children
+      const token = localStorage.getItem('jwtToken');
       if (token) {
         next();
       } else {
-        next({ name: "login" });
+        next({ name: 'login' });
       }
     },
   },
 ];
 
 const router = createRouter({
-  history: createWebHistory(), // Uses history mode for clean URLs
+  history: createWebHistory(),
   routes,
 });
 
