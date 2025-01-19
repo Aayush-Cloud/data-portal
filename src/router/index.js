@@ -4,6 +4,8 @@ import MainLayout from '../views/MainLayout.vue'; // Parent layout component
 import Dashboard from '../views/Dashboard.vue';
 import GraphView from '../views/GraphView.vue';
 import Visualizations from '../views/Visualizations.vue';
+import ErrorLogs from '../views/ErrorLogs.vue';
+import alert from '../views/alert.vue';
 
 const routes = [
   {
@@ -17,7 +19,9 @@ const routes = [
     children: [
       { path: 'dashboard', name: 'dashboard', component: Dashboard },
       { path: 'graphs', name: 'graphs', component: GraphView },
-      { path: 'visualizations', name: 'graphs', component: Visualizations },
+      { path: 'visualizations', name: 'visualizations', component: Visualizations },
+      { path: 'error-logs', name: 'error-logs', component: ErrorLogs },
+      { path: 'alert', name: 'alert', component: alert },
       // Add other routes here
     ],
     beforeEnter: (to, from, next) => {

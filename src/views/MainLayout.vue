@@ -29,13 +29,13 @@
               </router-link>
             </li>
             <li>
-              <router-link to="/app/logs" class="menu-item" active-class="active">
+              <router-link to="/app/error-logs" class="menu-item" active-class="active">
                 <i class="pi pi-exclamation-circle"></i>
                 <span>Error Logs</span>
               </router-link>
             </li>
             <li>
-              <router-link to="/app/alerts" class="menu-item" active-class="active">
+              <router-link to="/app/alert" class="menu-item" active-class="active">
                 <i class="pi pi-bell"></i>
                 <span>Alerts</span>
               </router-link>
