@@ -1,150 +1,249 @@
 <template>
     <div class="graph-container">
-      <h2>Automation Systems Health Overview</h2>
-  
-      <!-- Graph Type Selector -->
-      <div class="chart-selector">
-        <label for="chart-type">Select Chart Type:</label>
-        <select v-model="selectedChart" id="chart-type">
-          <option value="pie">Pie Chart</option>
-          <option value="bar">Bar Chart</option>
-          <option value="line">Line Chart</option>
-          <option value="radar">Radar Chart</option>
-          <option value="doughnut">Doughnut Chart</option>
-          <option value="polarArea">Polar Area Chart</option>
-          <option value="scatter">Scatter Chart</option>
-          <option value="bubble">Bubble Chart</option>
-          <option value="area">Area Chart</option>
-          <option value="mixed">Mixed Chart</option>
-        </select>
+      <div class="header-section">
+        <h2>System Health Analytics</h2>
+        <div class="chart-controls">
+          <Dropdown
+            v-model="selectedChart"
+            :options="chartTypes"
+            optionLabel="label"
+            placeholder="Select Chart Type"
+            class="chart-selector"
+          />
+        </div>
       </div>
   
-      <!-- Charts Display -->
-      <div class="charts">
-        <div v-for="(chart, index) in chartsData" :key="index" class="chart-wrapper">
-          <Chart :type="selectedChart" :data="chart.data" :options="chart.options" />
-        </div>
+      <div v-if="loading" class="loading">
+        <ProgressSpinner />
+      </div>
+  
+      <div v-else-if="error" class="error-message">
+        {{ error }}
+      </div>
+  
+      <div v-else class="chart-wrapper">
+        <Chart
+          :type="selectedChart.value"
+          :data="getChartData"
+          :options="getChartOptions"
+        />
       </div>
     </div>
   </template>
   
   <script>
-  import { ref, onMounted } from 'vue';
+  import { ref, computed, onMounted } from 'vue';
   import Chart from 'primevue/chart';
+  import Dropdown from 'primevue/dropdown';
+  import ProgressSpinner from 'primevue/progressspinner';
+  import MachineService from '../api/MachineServices';
   
   export default {
+    name: 'GraphView',
     components: {
-      Chart
+      Chart,
+      Dropdown,
+      ProgressSpinner
     },
     setup() {
-      // Define the chart data for multiple chart types
-      const chartData1 = ref({
-        labels: ['Healthy', 'Unhealthy'],
-        datasets: [{
-          data: [0, 0],
-          backgroundColor: ['#4CAF50', '#f44336'],
-          hoverBackgroundColor: ['#45a049', '#e53935']
-        }]
+      const loading = ref(false);
+      const error = ref(null);
+      const machines = ref([]);
+  
+      const chartTypes = [
+        { label: 'Pie Chart', value: 'pie' },
+        { label: 'Bar Chart', value: 'bar' },
+        { label: 'Line Chart', value: 'line' },
+        { label: 'Radar Chart', value: 'radar' },
+        { label: 'Polar Area', value: 'polarArea' },
+        { label: 'Doughnut', value: 'doughnut' },
+        { label: 'Bubble', value: 'bubble' },
+        { label: 'Scatter', value: 'scatter' }
+      ];
+  
+      const selectedChart = ref(chartTypes[0]);
+  
+      const getChartData = computed(() => {
+        const healthyCount = machines.value.filter(m => m.healthStatus === 'healthy').length;
+        const unhealthyCount = machines.value.filter(m => m.healthStatus === 'unhealthy').length;
+        
+        const baseData = {
+          labels: ['Healthy', 'Unhealthy'],
+          datasets: [{
+            data: [healthyCount, unhealthyCount],
+            backgroundColor: ['#4CAF50', '#f44336'],
+            borderColor: ['#45a049', '#e53935'],
+            borderWidth: 1
+          }]
+        };
+  
+        switch(selectedChart.value.value) {
+          case 'line':
+          case 'radar':
+            return {
+              labels: ['System Health'],
+              datasets: [
+                {
+                  label: 'Healthy Systems',
+                  data: [healthyCount],
+                  borderColor: '#4CAF50',
+                  tension: 0.4
+                },
+                {
+                  label: 'Unhealthy Systems',
+                  data: [unhealthyCount],
+                  borderColor: '#f44336',
+                  tension: 0.4
+                }
+              ]
+            };
+          case 'bubble':
+          case 'scatter':
+            return {
+              datasets: [{
+                label: 'System Health',
+                data: [
+                  { x: 1, y: healthyCount, r: 10 },
+                  { x: 2, y: unhealthyCount, r: 10 }
+                ],
+                backgroundColor: ['#4CAF50', '#f44336']
+              }]
+            };
+          default:
+            return baseData;
+        }
       });
   
-      const chartData2 = ref({
-        labels: ['System Health Status'],
-        datasets: [
-          {
-            label: 'Healthy Systems',
-            backgroundColor: '#4CAF50',
-            data: [0]
+      const getChartOptions = computed(() => {
+        const baseOptions = {
+          plugins: {
+            legend: {
+              labels: { color: 'var(--text-color)' }
+            }
           },
-          {
-            label: 'Unhealthy Systems',
-            backgroundColor: '#f44336',
-            data: [0]
-          }
-        ]
+          responsive: true,
+          maintainAspectRatio: false
+        };
+  
+        switch(selectedChart.value.value) {
+          case 'bar':
+            return {
+              ...baseOptions,
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  ticks: { color: 'var(--text-color)' }
+                },
+                x: {
+                  ticks: { color: 'var(--text-color)' }
+                }
+              }
+            };
+          case 'radar':
+            return {
+              ...baseOptions,
+              scales: {
+                r: {
+                  pointLabels: { color: 'var(--text-color)' },
+                  grid: { color: 'var(--border-color)' }
+                }
+              }
+            };
+          default:
+            return baseOptions;
+        }
       });
   
-      // Add more chart data here
-      const chartData3 = ref({
-        labels: ['A', 'B', 'C'],
-        datasets: [{
-          label: 'Example Line Chart',
-          data: [12, 19, 3],
-          fill: false,
-          borderColor: '#4CAF50',
-          tension: 0.1
-        }]
-      });
-  
-      // Store all chart configurations
-      const chartsData = ref([
-        { data: chartData1.value, options: { plugins: { title: { display: true, text: 'Pie Chart Example' } } } },
-        { data: chartData2.value, options: { plugins: { title: { display: true, text: 'Bar Chart Example' } } } },
-        { data: chartData3.value, options: { plugins: { title: { display: true, text: 'Line Chart Example' } } } },
-        // Add additional charts up to 10 types
-      ]);
-  
-      const selectedChart = ref('pie'); // Default chart type
-  
-      const fetchData = () => {
-        // Simulated data - replace with actual API call
-        const mockData = { healthy: 7, unhealthy: 3 };
-        chartData1.value.datasets[0].data = [mockData.healthy, mockData.unhealthy];
-        chartData2.value.datasets[0].data = [mockData.healthy];
-        chartData2.value.datasets[1].data = [mockData.unhealthy];
+      const fetchData = async () => {
+        try {
+          loading.value = true;
+          const response = await MachineService.getMachines();
+          machines.value = response.data;
+        } catch (err) {
+          error.value = 'Failed to load chart data';
+          console.error(err);
+        } finally {
+          loading.value = false;
+        }
       };
   
-      onMounted(() => {
-        fetchData();
-      });
+      onMounted(fetchData);
   
       return {
+        loading,
+        error,
         selectedChart,
-        chartsData
+        chartTypes,
+        getChartData,
+        getChartOptions
       };
     }
-  }
+  };
   </script>
   
   <style scoped>
   .graph-container {
     padding: 2rem;
+    background: var(--surface-color);
+    min-height: 100vh;
+    width: 100%;
   }
   
-  .chart-selector {
-    margin-bottom: 1rem;
-  }
-  
-  .chart-selector label {
-    margin-right: 0.5rem;
-  }
-  
-  .chart-selector select {
-    padding: 0.5rem;
-  }
-  
-  .charts {
+  .header-section {
     display: flex;
-    flex-wrap: wrap;
     justify-content: space-between;
+    align-items: center;
+    margin-bottom: 3rem;
+    padding: 0 2rem;
+  }
+  
+  .chart-controls {
+    min-width: 250px;
   }
   
   .chart-wrapper {
-    margin: 1rem;
-    padding: 1rem;
     background: var(--surface-color);
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    width: 45%; /* Reduce the chart size */
+    padding: 3rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    height: 85vh;
+    min-height: 900px;
+    width: 95%;
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
   
-  .chart-wrapper canvas {
-    max-width: 100% !important;
-    max-height: 300px; /* Reduce the height */
-  }
-  
-  h2 {
+  .loading, .error-message {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 400px;
     color: var(--text-color);
-    margin-bottom: 2rem;
+  }
+  
+  :deep(.p-dropdown) {
+    background: var(--surface-color);
+    border-color: var(--border-color);
+  }
+  
+  :deep(.p-dropdown-label),
+  :deep(.p-dropdown-item) {
+    color: var(--text-color);
+  }
+
+  :deep(.p-chart) {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 1600px;
+  }
+
+  @media (max-width: 768px) {
+    .chart-wrapper {
+      height: 70vh;
+      min-height: 600px;
+      padding: 1.5rem;
+    }
   }
   </style>
-  
