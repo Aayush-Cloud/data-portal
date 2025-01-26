@@ -82,40 +82,44 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
-  background-color: #f5f5f5;
+  min-height: 100vh;
+  background: var(--surface-ground);
 }
 
 .card {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  max-width: 400px;
+  background: var(--surface-card);
+  padding: 2rem;
+  border-radius: 12px;
   width: 100%;
-}
-
-h2 {
-  margin-bottom: 20px;
-  text-align: center;
+  max-width: 400px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .form {
-  display: flex;
-  flex-direction: column;
+  margin-top: 2rem;
 }
 
 .form-group {
-  margin-bottom: 15px;
+  margin-bottom: 1.5rem;
 }
 
-.alert {
-  margin-bottom: 15px;
+.form-group label {
+  display: block;
+  margin-bottom: 0.75rem;
+  color: var(--text-color);
+  font-weight: 500;
+}
+
+:deep(.p-password),
+:deep(.p-inputtext) {
+  width: 100%;
 }
 
 .button-wrapper {
-  display: flex;
-  justify-content: center;
-  margin-top: 20px;
+  margin-top: 2rem;
+}
+
+.alert {
+  margin: 1rem 0;
 }
 </style>

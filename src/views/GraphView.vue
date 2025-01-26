@@ -64,55 +64,57 @@
       const selectedChart = ref(chartTypes[0]);
   
       const getChartData = computed(() => {
-        const healthyCount = machines.value.filter(m => m.healthStatus === 'healthy').length;
-        const unhealthyCount = machines.value.filter(m => m.healthStatus === 'unhealthy').length;
-        
-        const baseData = {
-          labels: ['Healthy', 'Unhealthy'],
-          datasets: [{
-            data: [healthyCount, unhealthyCount],
-            backgroundColor: ['#4CAF50', '#f44336'],
-            borderColor: ['#45a049', '#e53935'],
-            borderWidth: 1
-          }]
-        };
+  const healthyCount = machines.value.filter(m => m.healthStatus === 'healthy').length;
+  const unhealthyCount = machines.value.filter(m => m.healthStatus === 'unhealthy').length;
   
-        switch(selectedChart.value.value) {
-          case 'line':
-          case 'radar':
-            return {
-              labels: ['System Health'],
-              datasets: [
-                {
-                  label: 'Healthy Systems',
-                  data: [healthyCount],
-                  borderColor: '#4CAF50',
-                  tension: 0.4
-                },
-                {
-                  label: 'Unhealthy Systems',
-                  data: [unhealthyCount],
-                  borderColor: '#f44336',
-                  tension: 0.4
-                }
-              ]
-            };
-          case 'bubble':
-          case 'scatter':
-            return {
-              datasets: [{
-                label: 'System Health',
-                data: [
-                  { x: 1, y: healthyCount, r: 10 },
-                  { x: 2, y: unhealthyCount, r: 10 }
-                ],
-                backgroundColor: ['#4CAF50', '#f44336']
-              }]
-            };
-          default:
-            return baseData;
-        }
-      });
+  switch(selectedChart.value.value) {
+    case 'bar':
+      return {
+        labels: ['System Health Status'],
+        datasets: [
+          {
+            label: 'Healthy Systems',
+            backgroundColor: '#4CAF50',
+            data: [healthyCount]
+          },
+          {
+            label: 'Unhealthy Systems',
+            backgroundColor: '#f44336',
+            data: [unhealthyCount]
+          }
+        ]
+      };
+    case 'line':
+    case 'radar':
+      return {
+        labels: ['System Health'],
+        datasets: [
+          {
+            label: 'Healthy Systems',
+            data: [healthyCount],
+            borderColor: '#4CAF50',
+            tension: 0.4
+          },
+          {
+            label: 'Unhealthy Systems',
+            data: [unhealthyCount],
+            borderColor: '#f44336',
+            tension: 0.4
+          }
+        ]
+      };
+    default:
+      return {
+        labels: ['Healthy', 'Unhealthy'],
+        datasets: [{
+          data: [healthyCount, unhealthyCount],
+          backgroundColor: ['#4CAF50', '#f44336'],
+          borderColor: ['#45a049', '#e53935'],
+          borderWidth: 1
+        }]
+      };
+  }
+});
   
       const getChartOptions = computed(() => {
         const baseOptions = {
