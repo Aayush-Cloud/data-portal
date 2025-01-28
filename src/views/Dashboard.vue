@@ -1,22 +1,3 @@
-<!-- MachineService.js -->
-// src/api/MachineService.js
-import axios from 'axios';
-
-const API_URL = 'your-api-base-url';
-
-export default {
-  getMachines() {
-    return axios.get(`${API_URL}/machines`);
-  },
-  
-  updateMachine(id, data) {
-    return axios.put(`${API_URL}/machines/${id}`, data);
-  },
-  
-  deleteMachine(id) {
-    return axios.delete(`${API_URL}/machines/${id}`);
-  }
-};
 
 <!-- Dashboard.vue -->
 <template>
@@ -24,209 +5,219 @@ export default {
     <!-- Header -->
     <h1 class="header">Machine Dashboard</h1>
 
-    <!-- Controls Section -->
-    <div class="controls">
-      <div class="search-bar">
-        <InputText 
-          v-model="searchTerm" 
-          placeholder="Search machines..." 
-          class="p-inputtext-lg w-full" 
-          @input="filterResources" 
-        />
-        <Button 
-          icon="pi pi-search" 
-          class="p-button-outlined p-button-primary ml-2" 
-        />
-      </div>
+   <!-- Controls Section -->
+<div class="controls">
+  <div class="search-bar">
+    <InputText 
+      v-model="searchTerm" 
+      placeholder="Search machines..." 
+      class="p-inputtext-lg w-full" 
+      @input="filterResources" 
+    />
+    <Button 
+      icon="pi pi-search" 
+      class="p-button-outlined p-button-primary ml-2" 
+    />
+  </div>
 
+  <Button 
+    label="Filter" 
+    icon="pi pi-filter" 
+    class="p-button-outlined p-button-secondary" 
+    @click="showFilterOverlay = true" 
+  />
+</div>
+
+<!-- Loading State -->
+<div v-if="loading" class="loading-overlay">
+  <ProgressSpinner />
+</div>
+
+<!-- Error Message -->
+<Message v-if="error" severity="error" :text="error" class="mb-4" />
+
+<!-- Resources Grid -->
+<div class="resources">
+  <h2>Automation Systems</h2>
+  <div 
+    v-for="machine in filteredResources" 
+    :key="machine._id" 
+    class="resource-card"
+  >
+    <div class="resource-details">
+      <h3>{{ machine.name }}</h3>
+      <p>{{ machine.description }}</p>
+      <Tag 
+        :severity="machine.healthStatus === 'healthy' ? 'success' : 'danger'"
+        class="health-tag"
+      >
+        {{ machine.healthStatus }}
+      </Tag>
+    </div>
+
+    <div class="resource-actions">
       <Button 
-        label="Filter" 
-        icon="pi pi-filter" 
-        class="p-button-outlined p-button-secondary" 
-        @click="showFilterOverlay = true" 
+        icon="pi pi-info-circle" 
+        class="p-button-rounded p-button-info" 
+        @click="showResourceDetails(machine)" 
+      />
+      <Button 
+        icon="pi pi-pencil" 
+        class="p-button-rounded p-button-warning" 
+        @click="editResource(machine)" 
+      />
+      <Button 
+        icon="pi pi-trash" 
+        class="p-button-rounded p-button-danger" 
+        @click="confirmDelete(machine)" 
       />
     </div>
+  </div>
+</div>
 
-    <!-- Loading State -->
-    <div v-if="loading" class="loading-overlay">
-      <ProgressSpinner />
-    </div>
-
-    <!-- Error Message -->
-    <Message v-if="error" severity="error" :text="error" class="mb-4" />
-
-    <!-- Resources Grid -->
-    <div class="resources">
-      <h2>Automation Systems</h2>
-      <div 
-        v-for="machine in filteredResources" 
-        :key="machine._id" 
-        class="resource-card"
-      >
-        <div class="resource-details">
-          <h3>{{ machine.name }}</h3>
-          <p>{{ machine.description }}</p>
-          <Tag 
-            :severity="machine.healthStatus === 'healthy' ? 'success' : 'danger'"
-            class="health-tag"
-          >
-            {{ machine.healthStatus }}
-          </Tag>
+<!-- Filter Overlay -->
+<Transition name="fade">
+  <div v-if="showFilterOverlay" class="overlay">
+    <div class="overlay-content">
+      <div class="overlay-header">
+        <h2>Filter by Health Status</h2>
+        <i class="pi pi-times close-icon" @click="showFilterOverlay = false"></i>
+      </div>
+      <div class="filter-options">
+        <div class="filter-option">
+          <Checkbox 
+            inputId="healthy" 
+            value="healthy" 
+            v-model="healthStatusFilter" 
+            @change="filterResources" 
+          />
+          <label for="healthy" class="filter-label">Healthy</label>
         </div>
-
-        <div class="resource-actions">
-          <Button 
-            icon="pi pi-info-circle" 
-            class="p-button-rounded p-button-info" 
-            @click="showResourceDetails(machine)" 
+        <div class="filter-option">
+          <Checkbox 
+            inputId="unhealthy" 
+            value="unhealthy" 
+            v-model="healthStatusFilter" 
+            @change="filterResources" 
           />
-          <Button 
-            icon="pi pi-pencil" 
-            class="p-button-rounded p-button-warning" 
-            @click="editResource(machine)" 
-          />
-          <Button 
-            icon="pi pi-trash" 
-            class="p-button-rounded p-button-danger" 
-            @click="confirmDelete(machine)" 
-          />
+          <label for="unhealthy" class="filter-label">Unhealthy</label>
         </div>
+      </div>
+      <div class="overlay-footer">
+        <Button 
+          label="Apply Filters" 
+          class="p-button-primary" 
+          @click="showFilterOverlay = false" 
+        />
       </div>
     </div>
+  </div>
+</Transition>
 
-    <!-- Filter Overlay -->
-    <Transition name="fade">
-      <div v-if="showFilterOverlay" class="overlay">
-        <div class="overlay-content">
-          <div class="overlay-header">
-            <h2>Filter by Health Status</h2>
-            <i class="pi pi-times close-icon" @click="showFilterOverlay = false"></i>
+<!-- Resource Details Overlay -->
+<Transition name="fade">
+  <div v-if="showDetailsOverlay" class="overlay">
+    <div class="overlay-content">
+      <div class="overlay-header">
+        <h2>{{ selectedResource?.name }}</h2>
+        <i class="pi pi-times close-icon" @click="showDetailsOverlay = false"></i>
+      </div>
+      <div v-if="selectedResource" class="resource-details-content">
+        <div class="info-section">
+          <h3>Basic Information</h3>
+          <p><strong>Description:</strong> {{ selectedResource.description }}</p>
+          <p><strong>Health Status:</strong> {{ selectedResource.healthStatus }}</p>
+          <p><strong>Type:</strong> {{ selectedResource.type }}</p>
+          <p><strong>Project:</strong> {{ selectedResource.automationProject }}</p>
+          <p><strong>Status:</strong> {{ selectedResource.status }}</p>
+        </div>
+
+        <div class="info-section">
+          <h3>OEE Metrics</h3>
+          <div class="metrics-grid">
+            <p><strong>Availability:</strong> {{ selectedResource.availability }}%</p>
+            <p><strong>Performance:</strong> {{ selectedResource.performance }}%</p>
+            <p><strong>Quality:</strong> {{ selectedResource.quality }}%</p>
+            <p><strong>OEE:</strong> {{ selectedResource.oee }}%</p>
           </div>
-          <div class="filter-options">
-            <div class="filter-option">
-              <Checkbox 
-                inputId="healthy" 
-                value="healthy" 
-                v-model="healthStatusFilter" 
-                @change="filterResources" 
-              />
-              <label for="healthy" class="filter-label">Healthy</label>
-            </div>
-            <div class="filter-option">
-              <Checkbox 
-                inputId="unhealthy" 
-                value="unhealthy" 
-                v-model="healthStatusFilter" 
-                @change="filterResources" 
-              />
-              <label for="unhealthy" class="filter-label">Unhealthy</label>
-            </div>
+        </div>
+
+        <div class="info-section">
+          <h3>Production Information</h3>
+          <p><strong>Planned Production:</strong> {{ selectedResource.plannedProductionTime }} min</p>
+          <p><strong>Operating Time:</strong> {{ selectedResource.operatingTime }} min</p>
+          <p><strong>Ideal Cycle Time:</strong> {{ selectedResource.idealCycleTime }} sec</p>
+          <p><strong>Ideal Output Rate:</strong> {{ selectedResource.idealOutputRate }} pcs/min</p>
+        </div>
+      </div>
+      <div class="overlay-footer">
+        <Button label="Close" class="p-button-outlined" @click="showDetailsOverlay = false" />
+      </div>
+    </div>
+  </div>
+</Transition>
+
+<!-- Edit Resource Overlay -->
+<Transition name="fade">
+  <div v-if="showEditOverlay" class="overlay">
+    <div class="overlay-content">
+      <div class="overlay-header">
+        <h2>Edit Resource</h2>
+        <i class="pi pi-times close-icon" @click="showEditOverlay = false"></i>
+      </div>
+      <div v-if="editingResource" class="p-fluid">
+        <div class="form-section">
+          <h3>Basic Information</h3>
+          <div class="form-field">
+            <label>Name</label>
+            <InputText v-model="editingResource.name" required />
           </div>
-          <div class="overlay-footer">
-            <Button 
-              label="Apply Filters" 
-              class="p-button-primary" 
-              @click="showFilterOverlay = false" 
-            />
+          <div class="form-field">
+            <label>Description</label>
+            <InputText v-model="editingResource.description" />
+          </div>
+          <div class="form-field">
+            <label>Type</label>
+            <InputText v-model="editingResource.type" />
+          </div>
+          <div class="form-field">
+            <label>Project</label>
+            <InputText v-model="editingResource.automationProject" />
+          </div>
+          <div class="form-field">
+            <label>Status</label>
+            <Dropdown v-model="editingResource.status" 
+                     :options="['running', 'stopped', 'maintenance']" />
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h3>Production Settings</h3>
+          <div class="form-field">
+            <label>Planned Production Time (minutes)</label>
+            <InputNumber v-model="editingResource.plannedProductionTime" />
+          </div>
+          <div class="form-field">
+            <label>Operating Time (minutes)</label>
+            <InputNumber v-model="editingResource.operatingTime" />
+          </div>
+          <div class="form-field">
+            <label>Ideal Cycle Time (seconds)</label>
+            <InputNumber v-model="editingResource.idealCycleTime" />
+          </div>
+          <div class="form-field">
+            <label>Ideal Output Rate (pieces/minute)</label>
+            <InputNumber v-model="editingResource.idealOutputRate" />
           </div>
         </div>
       </div>
-    </Transition>
-
-    <!-- Resource Details Overlay -->
-    <Transition name="fade">
-      <div v-if="showDetailsOverlay" class="overlay">
-        <div class="overlay-content">
-          <div class="overlay-header">
-            <h2>{{ selectedResource?.name }}</h2>
-            <i class="pi pi-times close-icon" @click="showDetailsOverlay = false"></i>
-          </div>
-          <div v-if="selectedResource" class="resource-details-content">
-            <p><strong>Description:</strong> {{ selectedResource.description }}</p>
-            <p><strong>Health Status:</strong> {{ selectedResource.healthStatus }}</p>
-            <p><strong>Type:</strong> {{ selectedResource.type }}</p>
-            <p><strong>Project:</strong> {{ selectedResource.automationProject }}</p>
-          </div>
-          <div class="overlay-footer">
-            <Button 
-              label="Close" 
-              class="p-button-outlined" 
-              @click="showDetailsOverlay = false" 
-            />
-          </div>
-        </div>
+      <div class="overlay-footer">
+        <Button label="Cancel" class="p-button-outlined" @click="showEditOverlay = false" />
+        <Button label="Save" class="p-button-primary" @click="saveResource" />
       </div>
-    </Transition>
-
-    <!-- Edit Resource Overlay -->
-    <Transition name="fade">
-      <div v-if="showEditOverlay" class="overlay">
-        <div class="overlay-content">
-          <div class="overlay-header">
-            <h2>Edit Resource</h2>
-            <i class="pi pi-times close-icon" @click="showEditOverlay = false"></i>
-          </div>
-          <div v-if="editingResource" class="p-fluid">
-            <div class="form-field">
-              <label>Description</label>
-              <InputText v-model="editingResource.description" />
-            </div>
-            <div class="form-field">
-              <label>Health Status</label>
-              <Dropdown 
-                v-model="editingResource.healthStatus" 
-                :options="['healthy', 'unhealthy']" 
-              />
-            </div>
-            <div class="form-field">
-              <label>Type</label>
-              <InputText v-model="editingResource.type" />
-            </div>
-            <div class="form-field">
-              <label>Project</label>
-              <InputText v-model="editingResource.automationProject" />
-            </div>
-          </div>
-          <div class="overlay-footer">
-            <Button 
-              label="Cancel" 
-              class="p-button-outlined" 
-              @click="showEditOverlay = false" 
-            />
-            <Button 
-              label="Save" 
-              class="p-button-primary" 
-              @click="saveResource" 
-            />
-          </div>
-        </div>
-      </div>
-    </Transition>
-
-    <!-- Delete Confirmation Overlay -->
-    <Transition name="fade">
-      <div v-if="showDeleteOverlay" class="overlay">
-        <div class="overlay-content">
-          <div class="overlay-header">
-            <h2>Confirm Delete</h2>
-            <i class="pi pi-times close-icon" @click="showDeleteOverlay = false"></i>
-          </div>
-          <p>Are you sure you want to delete this resource?</p>
-          <div class="overlay-footer">
-            <Button 
-              label="Cancel" 
-              class="p-button-outlined" 
-              @click="showDeleteOverlay = false" 
-            />
-            <Button 
-              label="Delete" 
-              class="p-button-danger" 
-              @click="deleteResourceConfirmed" 
-            />
-          </div>
-        </div>
-      </div>
-    </Transition>
+    </div>
+  </div>
+</Transition>
   </div>
 </template>
 
@@ -240,6 +231,7 @@ import ProgressSpinner from 'primevue/progressspinner';
 import Message from 'primevue/message';
 import Tag from 'primevue/tag';
 import Dropdown from 'primevue/dropdown';
+import InputNumber from 'primevue/inputnumber'
 
 export default {
   name: 'Dashboard',
@@ -251,6 +243,7 @@ export default {
     Message,
     Tag,
     Dropdown,
+    InputNumber
   },
   data() {
     return {

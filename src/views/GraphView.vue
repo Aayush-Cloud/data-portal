@@ -64,57 +64,101 @@
       const selectedChart = ref(chartTypes[0]);
   
       const getChartData = computed(() => {
-  const healthyCount = machines.value.filter(m => m.healthStatus === 'healthy').length;
-  const unhealthyCount = machines.value.filter(m => m.healthStatus === 'unhealthy').length;
-  
-  switch(selectedChart.value.value) {
-    case 'bar':
-      return {
-        labels: ['System Health Status'],
-        datasets: [
-          {
-            label: 'Healthy Systems',
-            backgroundColor: '#4CAF50',
-            data: [healthyCount]
-          },
-          {
-            label: 'Unhealthy Systems',
-            backgroundColor: '#f44336',
-            data: [unhealthyCount]
-          }
-        ]
-      };
-    case 'line':
-    case 'radar':
-      return {
-        labels: ['System Health'],
-        datasets: [
-          {
-            label: 'Healthy Systems',
-            data: [healthyCount],
-            borderColor: '#4CAF50',
-            tension: 0.4
-          },
-          {
-            label: 'Unhealthy Systems',
-            data: [unhealthyCount],
-            borderColor: '#f44336',
-            tension: 0.4
-          }
-        ]
-      };
-    default:
-      return {
-        labels: ['Healthy', 'Unhealthy'],
-        datasets: [{
-          data: [healthyCount, unhealthyCount],
-          backgroundColor: ['#4CAF50', '#f44336'],
-          borderColor: ['#45a049', '#e53935'],
-          borderWidth: 1
-        }]
-      };
-  }
-});
+        const healthyCount = machines.value.filter(m => m.healthStatus === 'healthy').length;
+        const unhealthyCount = machines.value.filter(m => m.healthStatus === 'unhealthy').length;
+        const criticallyUnhealthyCount = machines.value.filter(m => m.healthStatus === 'critically unhealthy').length;
+        const severelyUnhealthyCount = machines.value.filter(m => m.healthStatus === 'severely unhealthy').length;
+      
+        const healthData = {
+          labels: ['Healthy', 'Unhealthy', 'Critically Unhealthy', 'Severely Unhealthy'],
+          colors: ['#4CAF50', '#FFA726', '#f44336', '#d32f2f'],
+          data: [healthyCount, unhealthyCount, criticallyUnhealthyCount, severelyUnhealthyCount]
+        };
+      
+        switch(selectedChart.value.value) {
+          case 'bar':
+            return {
+              labels: ['System Health Status'],
+              datasets: [
+                {
+                  label: 'Healthy Systems',
+                  backgroundColor: healthData.colors[0],
+                  data: [healthData.data[0]]
+                },
+                {
+                  label: 'Unhealthy Systems',
+                  backgroundColor: healthData.colors[1],
+                  data: [healthData.data[1]]
+                },
+                {
+                  label: 'Critically Unhealthy',
+                  backgroundColor: healthData.colors[2],
+                  data: [healthData.data[2]]
+                },
+                {
+                  label: 'Severely Unhealthy',
+                  backgroundColor: healthData.colors[3],
+                  data: [healthData.data[3]]
+                }
+              ]
+            };
+          
+          case 'pie':
+          case 'doughnut':
+            return {
+              labels: healthData.labels,
+              datasets: [{
+                data: healthData.data,
+                backgroundColor: healthData.colors,
+                borderColor: healthData.colors,
+                borderWidth: 1
+              }]
+            };
+      
+          case 'line':
+          case 'radar':
+            return {
+              labels: ['Current Status'],
+              datasets: healthData.labels.map((label, index) => ({
+                label,
+                data: [healthData.data[index]],
+                borderColor: healthData.colors[index],
+                tension: 0.4,
+                fill: false
+              }))
+            };
+      
+          case 'polarArea':
+            return {
+              labels: healthData.labels,
+              datasets: [{
+                data: healthData.data,
+                backgroundColor: healthData.colors,
+                borderWidth: 1
+              }]
+            };
+      
+          case 'bubble':
+          case 'scatter':
+            return {
+              datasets: healthData.labels.map((label, index) => ({
+                label,
+                data: [{ x: index + 1, y: healthData.data[index], r: 10 }],
+                backgroundColor: healthData.colors[index]
+              }))
+            };
+      
+          default:
+            return {
+              labels: healthData.labels,
+              datasets: [{
+                data: healthData.data,
+                backgroundColor: healthData.colors,
+                borderWidth: 1
+              }]
+            };
+        }
+      });
   
       const getChartOptions = computed(() => {
         const baseOptions = {
