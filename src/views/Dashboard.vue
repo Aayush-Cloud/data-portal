@@ -4,6 +4,16 @@
     <!-- Header -->
     <h1 class="header">Machine Dashboard</h1>
 
+    <div class="header-actions">
+      <Button 
+        label="Export Data" 
+        icon="pi pi-download" 
+        class="p-button-outlined"
+        @click="exportToCSV" 
+        :loading="exporting"
+      />
+    </div>
+
    <!-- Controls Section -->
 <div class="controls">
   <div class="search-bar">
@@ -281,6 +291,7 @@ import Message from 'primevue/message';
 import Tag from 'primevue/tag';
 import Dropdown from 'primevue/dropdown';
 import InputNumber from 'primevue/inputnumber'
+import { convertToCSV, downloadCSV } from '../utils/exportUtils';
 
 export default {
   name: 'Dashboard',
@@ -328,7 +339,8 @@ export default {
         }
       },
       influxLoading: false,
-      influxError: null
+      influxError: null,
+      exporting: false
     };
   },
   async created() {
@@ -420,6 +432,18 @@ export default {
         this.loading = false;
       }
     },
+    async exportToCSV() {
+      try {
+        this.exporting = true;
+        const csvContent = convertToCSV(this.resources);
+        const filename = `machine-data-${new Date().toISOString().split('T')[0]}.csv`;
+        downloadCSV(csvContent, filename);
+      } catch (error) {
+        console.error('Export failed:', error);
+      } finally {
+        this.exporting = false;
+      }
+    }
   },
 };
 </script>
@@ -637,5 +661,11 @@ close-icon:hover {
 
 .status-indicators .pi-exclamation-triangle {
   color: var(--yellow-500);
+}
+
+.header-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1rem;
 }
 </style>
