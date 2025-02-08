@@ -1,11 +1,12 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import Login from '../views/Login.vue';
-import MainLayout from '../views/MainLayout.vue'; // Parent layout component
+import MainLayout from '../views/MainLayout.vue';
 import Dashboard from '../views/Dashboard.vue';
 import GraphView from '../views/GraphView.vue';
 import Visualizations from '../views/Visualizations.vue';
 import ErrorLogs from '../views/ErrorLogs.vue';
-import alert from '../views/alert.vue';
+import Alert from '../views/alert.vue';
+
 
 const routes = [
   {
@@ -15,17 +16,15 @@ const routes = [
   },
   {
     path: '/app',
-    component: MainLayout, // Use MainLayout as the parent route
+    component: MainLayout,
     children: [
       { path: 'dashboard', name: 'dashboard', component: Dashboard },
       { path: 'graphs', name: 'graphs', component: GraphView },
       { path: 'visualizations', name: 'visualizations', component: Visualizations },
       { path: 'error-logs', name: 'error-logs', component: ErrorLogs },
-      { path: 'alert', name: 'alert', component: alert },
-      // Add other routes here
+      { path: 'alert', name: 'alert', component: Alert },
     ],
     beforeEnter: (to, from, next) => {
-      // Protect the parent route and all its children
       const token = localStorage.getItem('jwtToken');
       if (token) {
         next();

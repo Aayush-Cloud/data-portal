@@ -1,4 +1,3 @@
-
 <!-- Dashboard.vue -->
 <template>
   <div class="dashboard-container">
@@ -149,6 +148,56 @@
           <p><strong>Ideal Cycle Time:</strong> {{ selectedResource.idealCycleTime }} sec</p>
           <p><strong>Ideal Output Rate:</strong> {{ selectedResource.idealOutputRate }} pcs/min</p>
         </div>
+
+        <div class="info-section" v-if="!influxLoading && influxData">
+          <h3>Real-time Status</h3>
+          
+          <!-- Application Status -->
+          <div class="module-section">
+            <h4>Application Status</h4>
+            <div class="module-grid">
+              <div v-for="(status, module) in influxData.application" :key="module" class="module-card">
+                <h5>{{ module }}</h5>
+                <div class="status-indicators">
+                  <p><i :class="['pi', status.active ? 'pi-check' : 'pi-times']"></i> Active</p>
+                  <p><i :class="['pi', status.error ? 'pi-exclamation-triangle' : 'pi-check']"></i> Error</p>
+                  <p><i :class="['pi', status.ready ? 'pi-check' : 'pi-times']"></i> Ready</p>
+                </div>
+              </div>
+            </div>
+          </div>
+      
+          <!-- Conveyor Status -->
+          <div class="module-section">
+            <h4>Conveyor Status</h4>
+            <div class="module-grid">
+              <div v-for="(status, module) in influxData.conveyor" :key="module" class="module-card">
+                <h5>{{ module }}</h5>
+                <p><strong>Status:</strong> {{ status.running ? 'Running' : 'Stopped' }}</p>
+              </div>
+            </div>
+          </div>
+      
+          <!-- RFID Data -->
+          <div class="module-section">
+            <h4>RFID Carriers</h4>
+            <div class="module-grid">
+              <div v-for="(data, id) in influxData.rfid" :key="id" class="module-card">
+                <h5>Carrier {{ data.carrierId }}</h5>
+                <p><strong>Code:</strong> {{ data.code || 'N/A' }}</p>
+                <p><strong>Last Update:</strong> {{ data.timestamp ? formatDate(data.timestamp) : 'N/A' }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      
+        <div v-if="influxLoading" class="info-section">
+          <ProgressSpinner />
+        </div>
+      
+        <div v-if="influxError" class="info-section error">
+          <Message severity="error" :text="influxError" />
+        </div>
       </div>
       <div class="overlay-footer">
         <Button label="Close" class="p-button-outlined" @click="showDetailsOverlay = false" />
@@ -260,6 +309,26 @@ export default {
       selectedResource: null,
       editingResource: null,
       resourceToDelete: null,
+      influxData: {
+        application: {
+          Press: { active: false, error: false, ready: false },
+          Turning: { active: false, error: false, ready: false }
+        },
+        conveyor: {
+          Press: { running: false },
+          Turning: { running: false }
+        },
+        emergency: {
+          Press: { pressed: false },
+          Turning: { pressed: false }
+        },
+        rfid: {
+          '0': { carrierId: 0, code: null, timestamp: null },
+          '1': { carrierId: 1, code: null, timestamp: null }
+        }
+      },
+      influxLoading: false,
+      influxError: null
     };
   },
   async created() {
@@ -287,8 +356,33 @@ export default {
         return matchesSearch && matchesFilter;
       });
     },
-    showResourceDetails(resource) {
-      this.selectedResource = resource;
+    async fetchInfluxData(machineId) {
+      try {
+        this.influxLoading = true;
+        const [appData, conveyorData, emergencyData, rfidData] = await Promise.all([
+          MachineService.getModuleStatus(machineId),
+          MachineService.getConveyorStatus(machineId),
+          MachineService.getEmergencyStatus(machineId),
+          MachineService.getRfidData(machineId)
+        ]);
+
+        this.influxData = {
+          application: appData.data,
+          conveyor: conveyorData.data,
+          emergency: emergencyData.data,
+          rfid: rfidData.data
+        };
+      } catch (error) {
+        console.error('Error fetching InfluxDB data:', error);
+        this.influxError = 'Failed to fetch real-time data';
+      } finally {
+        this.influxLoading = false;
+      }
+    },
+
+    async showResourceDetails(machine) {
+      this.selectedResource = machine;
+      await this.fetchInfluxData(machine._id);
       this.showDetailsOverlay = true;
     },
     editResource(resource) {
@@ -431,7 +525,7 @@ export default {
   color: var(--text-color-secondary);
 }
 
-.close-icon:hover {
+close-icon:hover {
   color: var(--text-color);
 }
 
@@ -500,5 +594,48 @@ export default {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* Add these new styles */
+.module-section {
+  margin-top: 1rem;
+}
+
+.module-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.module-card {
+  background: var(--surface-ground);
+  padding: 1rem;
+  border-radius: 6px;
+  border: 1px solid var(--surface-border);
+}
+
+.status-indicators {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.status-indicators p {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.status-indicators .pi-check {
+  color: var(--green-500);
+}
+
+.status-indicators .pi-times {
+  color: var(--red-500);
+}
+
+.status-indicators .pi-exclamation-triangle {
+  color: var(--yellow-500);
 }
 </style>
