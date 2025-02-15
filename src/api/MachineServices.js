@@ -25,9 +25,8 @@ export default {
     },
 
     deleteMachine(id) {
-        return axios.delete(`${API_URL}/${id}`, { headers: getAuthHeader() });
+        return api.delete(`/machines/${id}`);
     },
-
     // InfluxDB specific endpoints
     getInfluxData(id) {
         return axios.get(`${API_URL}/${id}/influx`, { headers: getAuthHeader() });

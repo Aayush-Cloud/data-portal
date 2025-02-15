@@ -56,14 +56,25 @@
     <div class="resource-details">
       <h3>{{ machine.name }}</h3>
       <p>{{ machine.description }}</p>
-      <Tag 
-        :severity="machine.healthStatus === 'healthy' ? 'success' : 'danger'"
-        class="health-tag"
-      >
-        {{ machine.healthStatus }}
-      </Tag>
+    
     </div>
 
+    
+      <div class="status-section">
+      <Tag :severity="machine.healthStatus === 'healthy' ? 'success' : 'danger'">
+        {{ machine.healthStatus }}
+      </Tag>
+      <Tag :severity="machine.status === 'running' ? 'success' : 'danger'">
+        {{ machine.status }}
+      </Tag>
+      <Button 
+        v-if="machine.status === 'stopped'"
+        icon="pi pi-play" 
+        class="p-button-rounded p-button-success p-button-sm"
+        @click="startMachine(machine)"
+        :loading="loadingMachineId === machine._id"
+      />
+    </div>
     <div class="resource-actions">
       <Button 
         icon="pi pi-info-circle" 
@@ -81,6 +92,7 @@
         @click="confirmDelete(machine)" 
       />
     </div>
+
   </div>
 </div>
 
@@ -277,6 +289,34 @@
     </div>
   </div>
 </Transition>
+
+<!-- Add Delete Dialog -->
+<Dialog 
+  v-model:visible="showDeleteDialog"
+  modal
+  header="Confirm Delete"
+  :style="{ width: '350px' }"
+>
+  <div class="confirmation-content">
+    <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem; color: var(--red-500)" />
+    <span>Are you sure you want to delete this machine?</span>
+  </div>
+  <template #footer>
+    <Button 
+      label="No" 
+      icon="pi pi-times" 
+      class="p-button-text"
+      @click="showDeleteDialog = false" 
+    />
+    <Button 
+      label="Yes" 
+      icon="pi pi-check" 
+      class="p-button-danger" 
+      @click="deleteResourceConfirmed"
+      :loading="deletingMachine" 
+    />
+  </template>
+</Dialog>
   </div>
 </template>
 
@@ -292,6 +332,7 @@ import Tag from 'primevue/tag';
 import Dropdown from 'primevue/dropdown';
 import InputNumber from 'primevue/inputnumber'
 import { convertToCSV, downloadCSV } from '../utils/exportUtils';
+import Dialog from 'primevue/dialog';
 
 export default {
   name: 'Dashboard',
@@ -303,7 +344,8 @@ export default {
     Message,
     Tag,
     Dropdown,
-    InputNumber
+    InputNumber,
+    Dialog
   },
   data() {
     return {
@@ -340,7 +382,10 @@ export default {
       },
       influxLoading: false,
       influxError: null,
-      exporting: false
+      exporting: false,
+      loadingMachineId: null,
+      showDeleteDialog: false,
+      deletingMachine: false
     };
   },
   async created() {
@@ -417,19 +462,24 @@ export default {
       }
     },
     confirmDelete(resource) {
+      console.log('Confirming delete for:', resource);
       this.resourceToDelete = resource;
-      this.showDeleteOverlay = true;
+      this.showDeleteDialog = true; // This should open the dialog
     },
+    
     async deleteResourceConfirmed() {
+      if (!this.resourceToDelete?._id) return;
+      
       try {
-        this.loading = true;
+        this.deletingMachine = true;
         await MachineService.deleteMachine(this.resourceToDelete._id);
         await this.fetchResources();
-        this.showDeleteOverlay = false;
+        this.showDeleteDialog = false;
       } catch (error) {
-        this.error = error.response?.data?.message || 'Failed to delete resource';
+        console.error('Delete failed:', error);
       } finally {
-        this.loading = false;
+        this.deletingMachine = false;
+        this.resourceToDelete = null;
       }
     },
     async exportToCSV() {
@@ -443,6 +493,42 @@ export default {
       } finally {
         this.exporting = false;
       }
+    },
+    stopMachine(machineId) {
+      return axios.post(`${API_URL}/machines/${machineId}/stop`, {}, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('jwtToken')}` }
+      });
+    },
+    async updateMachineStatus(machineId, status) {
+      return axios.put(`${API_URL}/machines/${machineId}/status`, { status }, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('jwtToken')}` }
+      });
+    },
+    async updateMachine(machineId, data) {
+      return axios.put(`${API_URL}/machines/${machineId}`, data, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('jwtToken')}` }
+      });
+    },
+    async startMachine(machine) {
+      try {
+        this.loadingMachineId = machine._id;
+        await MachineService.updateMachine(machine._id, {
+          ...machine,
+          status: 'running'
+        });
+        await this.fetchResources();
+      } catch (error) {
+        console.error('Failed to start machine:', error);
+      } finally {
+        this.loadingMachineId = null;
+      }
+    },
+    deleteMachine(id) {
+      return axios.delete(`${API_URL}/machines/${id}`, {
+        headers: {
+            Authorization: `Bearer ${localStorage.getItem('jwtToken')}`
+        }
+      });
     }
   },
 };
@@ -496,6 +582,7 @@ export default {
 
 .health-tag {
   margin-top: 10px;
+  margin-right: 0.5vw;
 }
 
 .resource-actions {
@@ -667,5 +754,12 @@ close-icon:hover {
   display: flex;
   justify-content: flex-end;
   margin-bottom: 1rem;
+}
+
+.status-section {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
 }
 </style>

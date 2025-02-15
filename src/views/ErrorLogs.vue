@@ -50,6 +50,11 @@
             class="p-button-outlined" 
             @click="showDetails(machine)" 
           />
+          <Button 
+            label="Edit" 
+            class="p-button-outlined" 
+            @click="handleTakeAction(machine)" 
+          />
         </div>
       </div>
     </div>
@@ -68,6 +73,74 @@
         </div>
       </div>
     </BaseOverlay>
+
+    <!-- Edit Overlay -->
+    <Transition name="fade">
+      <div v-if="showEditOverlay" class="overlay">
+        <div class="overlay-content">
+          <div class="overlay-header">
+            <h2>Edit Machine</h2>
+            <i class="pi pi-times close-icon" @click="showEditOverlay = false"></i>
+          </div>
+          
+          <div v-if="editingMachine" class="p-fluid">
+            <div class="form-section">
+              <h3>Basic Information</h3>
+              <div class="form-field">
+                <label>Name</label>
+                <InputText v-model="editingMachine.name" required />
+              </div>
+              <div class="form-field">
+                <label>Description</label>
+                <InputText v-model="editingMachine.description" />
+              </div>
+              <div class="form-field">
+                <label>Type</label>
+                <InputText v-model="editingMachine.type" />
+              </div>
+              <div class="form-field">
+                <label>Project</label>
+                <InputText v-model="editingMachine.automationProject" />
+              </div>
+              <div class="form-field">
+                <label>Status</label>
+                <Dropdown v-model="editingMachine.healthStatus" 
+                         :options="['healthy', 'unhealthy', 'severely unhealthy', 'critically unhealthy']" />
+              </div>
+            </div>
+
+            <div class="form-section">
+              <h3>Performance Metrics</h3>
+              <div class="form-field">
+                <label>Availability (%)</label>
+                <InputNumber v-model="editingMachine.availability" :min="0" :max="100" />
+              </div>
+              <div class="form-field">
+                <label>Performance (%)</label>
+                <InputNumber v-model="editingMachine.performance" :min="0" :max="100" />
+              </div>
+              <div class="form-field">
+                <label>Quality (%)</label>
+                <InputNumber v-model="editingMachine.quality" :min="0" :max="100" />
+              </div>
+              <div class="form-field">
+                <label>Ideal Cycle Time (seconds)</label>
+                <InputNumber v-model="editingMachine.idealCycleTime" :min="0" />
+              </div>
+              <div class="form-field">
+                <label>Ideal Output Rate (pieces/minute)</label>
+                <InputNumber v-model="editingMachine.idealOutputRate" :min="0" />
+              </div>
+            </div>
+          </div>
+
+          <div class="overlay-footer">
+            <Button label="Cancel" class="p-button-outlined" @click="showEditOverlay = false" />
+            <Button label="Save" class="p-button-primary" @click="saveMachine" />
+          </div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -76,6 +149,9 @@ import { ref, computed, onMounted } from 'vue'
 import BaseOverlay from '../components/BaseOverlay.vue'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
+import InputText from 'primevue/inputtext'
+import Dropdown from 'primevue/dropdown'
+import InputNumber from 'primevue/inputnumber'
 import MachineService from '../api/MachineServices'
 
 export default {
@@ -83,12 +159,17 @@ export default {
   components: {
     BaseOverlay,
     Button,
-    Tag
+    Tag,
+    InputText,
+    Dropdown,
+    InputNumber
   },
   setup() {
     const machines = ref([])
     const showDetailsOverlay = ref(false)
     const selectedMachine = ref(null)
+    const showEditOverlay = ref(false)
+    const editingMachine = ref(null)
 
     const unhealthyMachines = computed(() => 
       machines.value.filter(m => m.healthStatus !== 'healthy')
@@ -126,6 +207,21 @@ export default {
       selectedMachine.value = null
     }
 
+    const handleTakeAction = (machine) => {
+      editingMachine.value = { ...machine }
+      showEditOverlay.value = true
+    }
+
+    const saveMachine = async () => {
+      try {
+        await MachineService.updateMachine(editingMachine.value._id, editingMachine.value)
+        showEditOverlay.value = false
+        fetchMachines()
+      } catch (error) {
+        console.error('Failed to update machine:', error)
+      }
+    }
+
     const formatDate = (date) => {
       return new Date(date).toLocaleString()
     }
@@ -152,7 +248,11 @@ export default {
       showDetails,
       closeDetails,
       formatDate,
-      criticalCount
+      criticalCount,
+      showEditOverlay,
+      editingMachine,
+      handleTakeAction,
+      saveMachine
     }
   }
 }
@@ -334,4 +434,96 @@ export default {
   100% { opacity: 1; }
 }
 
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.overlay-content {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.form-section {
+  margin-bottom: 2rem;
+}
+
+.form-section h3 {
+  color: var(--text-color);
+  font-size: 1.2rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1.5rem;
+}
+
+.form-field label {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: var(--text-color-secondary);
+}
+
+.overlay-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.overlay-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--text-color);
+}
+
+.overlay-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--surface-border);
+}
+
+/* Add smooth transitions */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* Input styling */
+:deep(.p-inputtext),
+:deep(.p-dropdown) {
+  width: 100%;
+}
+
+:deep(.p-inputnumber) {
+  width: 100%;
+}
 </style>

@@ -40,6 +40,12 @@
                 <span>Alerts</span>
               </router-link>
             </li>
+            <li>
+              <router-link to="/" class="menu-item" active-class="active">
+                <i class="pi pi-power-off"></i>
+                <span>Logout</span>
+              </router-link>
+            </li>
           </ul>
         </nav>
       </aside>
@@ -52,8 +58,27 @@
   </template>
   
   <script>
+  import { ref } from 'vue';
+  import { useRouter } from 'vue-router';
+  import auth from '../api/auth';
+  
   export default {
     name: 'MainLayout',
+    setup() {
+      const router = useRouter();
+      const handleLogout = async () => {
+        try {
+          await auth.logout();
+          router.push('/');
+        } catch (error) {
+          console.error('Logout failed:', error);
+        }
+      };
+  
+      return {
+        handleLogout
+      };
+    }
   };
   </script>
   
@@ -123,5 +148,18 @@
   .main-content {
     transition: background-color 0.3s, color 0.3s;
   }
-  </style>
+
+  .logout-item {
+    color: var(--red-600) !important;
+    cursor: pointer;
+  }
   
+  .logout-item:hover {
+    background-color: var(--red-50) !important;
+    color: var(--red-700) !important;
+  }
+  
+  .logout-item i {
+    color: var(--red-600);
+  }
+  </style>

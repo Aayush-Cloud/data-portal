@@ -136,10 +136,10 @@ export default {
       ]
       
       const today = new Date()
-      const isJan27 = today.getDate() === 27 && today.getMonth() === 0
+      const isFeb9 = today.getDate() === 9 && today.getMonth() === 1
     
       const data = months.map(month => {
-        if (month === 'Jan 2025' && isJan27) {
+        if (month === 'Feb 2025' && isFeb9) {
           return 3 // Three errors on Jan 27
         }
         return 0 // No errors on other dates
