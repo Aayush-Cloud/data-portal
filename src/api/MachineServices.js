@@ -25,26 +25,42 @@ export default {
     },
 
     deleteMachine(id) {
-        return api.delete(`/machines/${id}`);
+        return axios.delete(`${API_URL}/${id}`, { headers: getAuthHeader() });
     },
+
     // InfluxDB specific endpoints
     getInfluxData(id) {
         return axios.get(`${API_URL}/${id}/influx`, { headers: getAuthHeader() });
     },
 
-    getModuleStatus(id) {
-        return axios.get(`${API_URL}/${id}/module-status`, { headers: getAuthHeader() });
+    getModuleStatus(machineId) {
+        const query = `SELECT Active, Error, Module, Ready 
+                       FROM Application 
+                       WHERE time > now() - 5s 
+                       GROUP BY Module`;
+        return axios.post(`${API_URL}/influx/query`, { query });
     },
 
-    getConveyorStatus(id) {
-        return axios.get(`${API_URL}/${id}/conveyor`, { headers: getAuthHeader() });
+    getConveyorStatus(machineId) {
+        const query = `SELECT Running, Module 
+                       FROM Conveyor 
+                       WHERE time > now() - 5s 
+                       GROUP BY Module`;
+        return axios.post(`${API_URL}/influx/query`, { query });
     },
 
-    getRfidData(id) {
-        return axios.get(`${API_URL}/${id}/rfid`, { headers: getAuthHeader() });
+    getRfidData(machineId) {
+        const query = `SELECT CarrierID, Code 
+                       FROM RfidData 
+                       WHERE time > now() - 5s`;
+        return axios.post(`${API_URL}/influx/query`, { query });
     },
 
-    getEmergencyStatus(id) {
-        return axios.get(`${API_URL}/${id}/emergency`, { headers: getAuthHeader() });
+    getEmergencyStatus(machineId) {
+        const query = `SELECT Pressed, Module 
+                       FROM EmergencySwitch 
+                       WHERE time > now() - 5s 
+                       GROUP BY Module`;
+        return axios.post(`${API_URL}/influx/query`, { query });
     }
 };

@@ -212,6 +212,54 @@
             </div>
           </div>
         </div>
+
+        <div class="module-status">
+          <h3>Real-time Module Status</h3>
+          
+          <!-- Application Status -->
+          <div class="status-card">
+            <h4>Application Status</h4>
+            <div class="status-indicators">
+              <p>
+                <i :class="['pi', influxData.application.Active ? 'pi-check' : 'pi-times']"></i>
+                Active
+              </p>
+              <p>
+                <i :class="['pi', !influxData.application.Error ? 'pi-check' : 'pi-exclamation-triangle']"></i>
+                Error Status
+              </p>
+              <p>
+                <i :class="['pi', influxData.application.Ready ? 'pi-check' : 'pi-times']"></i>
+                Ready
+              </p>
+            </div>
+          </div>
+        
+          <!-- Conveyor Status -->
+          <div class="status-card">
+            <h4>Conveyor Status</h4>
+            <Tag :severity="influxData.conveyor.Running ? 'success' : 'danger'">
+              {{ influxData.conveyor.Running ? 'Running' : 'Stopped' }}
+            </Tag>
+          </div>
+        
+          <!-- RFID Data -->
+          <div class="status-card">
+            <h4>RFID Carrier Data</h4>
+            <div class="rfid-data">
+              <p>Carrier ID: {{ influxData.rfid.CarrierID }}</p>
+              <p>Code: {{ influxData.rfid.Code }}</p>
+            </div>
+          </div>
+        
+          <!-- Emergency Status -->
+          <div class="status-card">
+            <h4>Emergency Status</h4>
+            <Tag :severity="influxData.emergency.Pressed ? 'danger' : 'success'">
+              {{ influxData.emergency.Pressed ? 'Emergency Stop Active' : 'Normal' }}
+            </Tag>
+          </div>
+        </div>
       
         <div v-if="influxLoading" class="info-section">
           <ProgressSpinner />
@@ -391,6 +439,20 @@ export default {
   async created() {
     await this.fetchResources();
   },
+  mounted() {
+    // Start polling when machine details are shown
+    this.$watch('showDetailsOverlay', (newVal) => {
+        if (newVal && this.selectedResource) {
+            this.startPolling();
+        } else {
+            this.stopPolling();
+        }
+    });
+  },
+
+  beforeUnmount() {
+      this.stopPolling();
+  },
   methods: {
     async fetchResources() {
       try {
@@ -423,11 +485,12 @@ export default {
           MachineService.getRfidData(machineId)
         ]);
 
+        // Transform the InfluxDB response data
         this.influxData = {
-          application: appData.data,
-          conveyor: conveyorData.data,
-          emergency: emergencyData.data,
-          rfid: rfidData.data
+          application: this.transformApplicationData(appData.data),
+          conveyor: this.transformConveyorData(conveyorData.data),
+          emergency: this.transformEmergencyData(emergencyData.data),
+          rfid: this.transformRfidData(rfidData.data)
         };
       } catch (error) {
         console.error('Error fetching InfluxDB data:', error);
@@ -529,8 +592,45 @@ export default {
             Authorization: `Bearer ${localStorage.getItem('jwtToken')}`
         }
       });
-    }
-  },
+    },
+    startPolling() {
+      this.pollInterval = setInterval(() => {
+          if (this.selectedResource) {
+              this.fetchInfluxData(this.selectedResource._id);
+          }
+      }, 5000); // Poll every 5 seconds
+    },
+
+    stopPolling() {
+        if (this.pollInterval) {
+            clearInterval(this.pollInterval);
+            this.pollInterval = null;
+        }
+    },
+    transformApplicationData(data) {
+      const result = {};
+      data.forEach(point => {
+          result[point.Module] = {
+              active: point.Active,
+              error: point.Error,
+              ready: point.Ready
+          };
+      });
+      return result;
+    },
+
+    transformConveyorData(data) {
+      const result = {};
+      data.forEach(point => {
+          result[point.Module] = {
+              running: point.Running
+          };
+      });
+      return result;
+    },
+
+    // Add similar transform methods for emergency and RFID data
+  }
 };
 </script>
 
@@ -611,7 +711,10 @@ export default {
   padding: 2rem;
   border-radius: 12px;
   width: 90%;
-  max-width: 500px;
+  max-width: 800px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
   position: relative;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
@@ -623,6 +726,10 @@ export default {
   margin-bottom: 1rem;
   padding-bottom: 1rem;
   border-bottom: 1px solid var(--surface-border);
+  position: sticky;
+  top: 0;
+  background: var(--surface-color);
+  z-index: 1;
 }
 
 .overlay-header h2 {
@@ -647,6 +754,9 @@ close-icon:hover {
   margin-top: 2rem;
   padding-top: 1rem;
   border-top: 1px solid var(--surface-border);
+  position: sticky;
+  bottom: 0;
+  background: var(--surface-color);
 }
 
 .form-field {
@@ -689,7 +799,24 @@ close-icon:hover {
 }
 
 .resource-details-content {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 1rem;
   margin: 1rem 0;
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: var(--surface-ground);
+    border-radius: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: var(--surface-border);
+    border-radius: 4px;
+  }
 }
 
 .resource-details-content p {
