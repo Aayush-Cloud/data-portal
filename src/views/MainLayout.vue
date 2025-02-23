@@ -23,15 +23,21 @@
               </router-link>
             </li>
             <li>
+              <router-link to="/app/error-logs" class="menu-item" active-class="active">
+                <i class="pi pi-exclamation-circle"></i>
+                <span>Error Logs</span>
+              </router-link>
+            </li>
+            <li>
               <router-link to="/app/visualizations" class="menu-item" active-class="active">
                 <i class="pi pi-chart-pie"></i>
                 <span>Visualizations</span>
               </router-link>
             </li>
             <li>
-              <router-link to="/app/error-logs" class="menu-item" active-class="active">
+              <router-link to="/app/automation-modules" class="menu-item" active-class="active">
                 <i class="pi pi-exclamation-circle"></i>
-                <span>Error Logs</span>
+                <span>Automation modules</span>
               </router-link>
             </li>
             <li>

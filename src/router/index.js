@@ -6,7 +6,9 @@ import GraphView from '../views/GraphView.vue';
 import Visualizations from '../views/Visualizations.vue';
 import ErrorLogs from '../views/ErrorLogs.vue';
 import Alert from '../views/alert.vue';
-
+import OEEValidation from '../components/OEEValidation.vue';
+import AutomationModules from '../views/AutomationModules.vue';
+import Profile from '../views/profile.vue';
 
 const routes = [
   {
@@ -23,6 +25,9 @@ const routes = [
       { path: 'visualizations', name: 'visualizations', component: Visualizations },
       { path: 'error-logs', name: 'error-logs', component: ErrorLogs },
       { path: 'alert', name: 'alert', component: Alert },
+      {path: 'oee-validation', name: 'oee-validation', component: OEEValidation},  
+      {path: 'automation-modules', name: 'automation-modules', component: AutomationModules},
+      {path: 'profile', name: 'profile', component: Profile}
     ],
     beforeEnter: (to, from, next) => {
       const token = localStorage.getItem('jwtToken');

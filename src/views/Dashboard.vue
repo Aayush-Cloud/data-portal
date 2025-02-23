@@ -139,6 +139,7 @@
 <Transition name="fade">
   <div v-if="showDetailsOverlay" class="overlay">
     <div class="overlay-content">
+      <!-- Resource Details Overlay Header -->
       <div class="overlay-header">
         <h2>{{ selectedResource?.name }}</h2>
         <i class="pi pi-times close-icon" @click="showDetailsOverlay = false"></i>
@@ -171,103 +172,6 @@
           <p><strong>Ideal Output Rate:</strong> {{ selectedResource.idealOutputRate }} pcs/min</p>
         </div>
 
-        <div class="info-section" v-if="!influxLoading && influxData">
-          <h3>Real-time Status</h3>
-          
-          <!-- Application Status -->
-          <div class="module-section">
-            <h4>Application Status</h4>
-            <div class="module-grid">
-              <div v-for="(status, module) in influxData.application" :key="module" class="module-card">
-                <h5>{{ module }}</h5>
-                <div class="status-indicators">
-                  <p><i :class="['pi', status.active ? 'pi-check' : 'pi-times']"></i> Active</p>
-                  <p><i :class="['pi', status.error ? 'pi-exclamation-triangle' : 'pi-check']"></i> Error</p>
-                  <p><i :class="['pi', status.ready ? 'pi-check' : 'pi-times']"></i> Ready</p>
-                </div>
-              </div>
-            </div>
-          </div>
-      
-          <!-- Conveyor Status -->
-          <div class="module-section">
-            <h4>Conveyor Status</h4>
-            <div class="module-grid">
-              <div v-for="(status, module) in influxData.conveyor" :key="module" class="module-card">
-                <h5>{{ module }}</h5>
-                <p><strong>Status:</strong> {{ status.running ? 'Running' : 'Stopped' }}</p>
-              </div>
-            </div>
-          </div>
-      
-          <!-- RFID Data -->
-          <div class="module-section">
-            <h4>RFID Carriers</h4>
-            <div class="module-grid">
-              <div v-for="(data, id) in influxData.rfid" :key="id" class="module-card">
-                <h5>Carrier {{ data.carrierId }}</h5>
-                <p><strong>Code:</strong> {{ data.code || 'N/A' }}</p>
-                <p><strong>Last Update:</strong> {{ data.timestamp ? formatDate(data.timestamp) : 'N/A' }}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="module-status">
-          <h3>Real-time Module Status</h3>
-          
-          <!-- Application Status -->
-          <div class="status-card">
-            <h4>Application Status</h4>
-            <div class="status-indicators">
-              <p>
-                <i :class="['pi', influxData.application.Active ? 'pi-check' : 'pi-times']"></i>
-                Active
-              </p>
-              <p>
-                <i :class="['pi', !influxData.application.Error ? 'pi-check' : 'pi-exclamation-triangle']"></i>
-                Error Status
-              </p>
-              <p>
-                <i :class="['pi', influxData.application.Ready ? 'pi-check' : 'pi-times']"></i>
-                Ready
-              </p>
-            </div>
-          </div>
-        
-          <!-- Conveyor Status -->
-          <div class="status-card">
-            <h4>Conveyor Status</h4>
-            <Tag :severity="influxData.conveyor.Running ? 'success' : 'danger'">
-              {{ influxData.conveyor.Running ? 'Running' : 'Stopped' }}
-            </Tag>
-          </div>
-        
-          <!-- RFID Data -->
-          <div class="status-card">
-            <h4>RFID Carrier Data</h4>
-            <div class="rfid-data">
-              <p>Carrier ID: {{ influxData.rfid.CarrierID }}</p>
-              <p>Code: {{ influxData.rfid.Code }}</p>
-            </div>
-          </div>
-        
-          <!-- Emergency Status -->
-          <div class="status-card">
-            <h4>Emergency Status</h4>
-            <Tag :severity="influxData.emergency.Pressed ? 'danger' : 'success'">
-              {{ influxData.emergency.Pressed ? 'Emergency Stop Active' : 'Normal' }}
-            </Tag>
-          </div>
-        </div>
-      
-        <div v-if="influxLoading" class="info-section">
-          <ProgressSpinner />
-        </div>
-      
-        <div v-if="influxError" class="info-section error">
-          <Message severity="error" :text="influxError" />
-        </div>
       </div>
       <div class="overlay-footer">
         <Button label="Close" class="p-button-outlined" @click="showDetailsOverlay = false" />
@@ -280,6 +184,7 @@
 <Transition name="fade">
   <div v-if="showEditOverlay" class="overlay">
     <div class="overlay-content">
+      <!-- Edit Resource Overlay Header -->
       <div class="overlay-header">
         <h2>Edit Resource</h2>
         <i class="pi pi-times close-icon" @click="showEditOverlay = false"></i>
@@ -719,44 +624,78 @@ export default {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
 
+/* Add styles for scrollable edit form */
+.p-fluid {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 1rem;
+  margin: 1rem 0;
+
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: var(--surface-ground);
+    border-radius: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: var(--surface-border);
+    border-radius: 4px;
+  }
+}
+
+/* Update form section styles */
+.form-section {
+  margin-bottom: 2rem;
+
+  h3 {
+    position: sticky;
+    top: 0;
+    background: var(--surface-color);
+    padding: 1rem 0;
+    margin: 0 0 1rem 0;
+    z-index: 1;
+  }
+}
+
+/* Ensure header and footer stay fixed */
 .overlay-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--surface-border);
   position: sticky;
   top: 0;
   background: var(--surface-color);
-  z-index: 1;
+  z-index: 2;
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--surface-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.overlay-header h2 {
-  margin: 0;
-  font-size: 1.5rem;
-}
-
+/* Add styles for close icon */
 .close-icon {
   cursor: pointer;
   font-size: 1.5rem;
   color: var(--text-color-secondary);
+  transition: color 0.2s;
+  padding: 0.5rem;
+  margin: -0.5rem;
 }
 
-close-icon:hover {
+.close-icon:hover {
   color: var(--text-color);
 }
 
 .overlay-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 2rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--surface-border);
   position: sticky;
   bottom: 0;
   background: var(--surface-color);
+  padding-top: 1rem;
+  margin-top: 1rem;
+  border-top: 1px solid var(--surface-border);
+  z-index: 2;
 }
 
 .form-field {

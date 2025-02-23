@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5000/api/machines';
+const BASE_URL = 'http://localhost:5000/api';
+const MACHINE_URL = `${BASE_URL}/machines`;
+const SENSOR_URL = `${BASE_URL}/sensors`;
 
 const getAuthHeader = () => ({
     Authorization: `Bearer ${localStorage.getItem('jwtToken')}`
@@ -9,58 +11,63 @@ const getAuthHeader = () => ({
 export default {
     // Basic CRUD operations
     getMachines() {
-        return axios.get(API_URL, { headers: getAuthHeader() });
+        return axios.get(MACHINE_URL, { headers: getAuthHeader() });
     },
 
     getMachineById(id) {
-        return axios.get(`${API_URL}/${id}`, { headers: getAuthHeader() });
+        return axios.get(`${MACHINE_URL}/${id}`, { headers: getAuthHeader() });
     },
 
     createMachine(data) {
-        return axios.post(API_URL, data, { headers: getAuthHeader() });
+        return axios.post(MACHINE_URL, data, { headers: getAuthHeader() });
     },
 
     updateMachine(id, data) {
-        return axios.put(`${API_URL}/${id}`, data, { headers: getAuthHeader() });
+        return axios.put(`${MACHINE_URL}/${id}`, data, { headers: getAuthHeader() });
     },
 
     deleteMachine(id) {
-        return axios.delete(`${API_URL}/${id}`, { headers: getAuthHeader() });
+        return axios.delete(`${MACHINE_URL}/${id}`, { headers: getAuthHeader() });
+    },
+
+    // Sensor data endpoints
+    getSensorTemperature() {
+        return axios.get(`${SENSOR_URL}/temperature`, { 
+            headers: getAuthHeader() 
+        });
+    },
+
+    getSensorPressure() {
+        return axios.get(`${SENSOR_URL}/pressure`, { 
+            headers: getAuthHeader() 
+        });
     },
 
     // InfluxDB specific endpoints
-    getInfluxData(id) {
-        return axios.get(`${API_URL}/${id}/influx`, { headers: getAuthHeader() });
+
+    getModuleStatus(id) {
+        return axios.get(`${MACHINE_URL}/${id}/module-status`, { headers: getAuthHeader() });
     },
 
-    getModuleStatus(machineId) {
-        const query = `SELECT Active, Error, Module, Ready 
-                       FROM Application 
-                       WHERE time > now() - 5s 
-                       GROUP BY Module`;
-        return axios.post(`${API_URL}/influx/query`, { query });
+    getConveyorStatus(id) {
+        return axios.get(`${MACHINE_URL}/${id}/conveyor`, { headers: getAuthHeader() });
     },
 
-    getConveyorStatus(machineId) {
-        const query = `SELECT Running, Module 
-                       FROM Conveyor 
-                       WHERE time > now() - 5s 
-                       GROUP BY Module`;
-        return axios.post(`${API_URL}/influx/query`, { query });
+    getRfidData(id) {
+        return axios.get(`${MACHINE_URL}/${id}/rfid`, { headers: getAuthHeader() });
     },
 
-    getRfidData(machineId) {
-        const query = `SELECT CarrierID, Code 
-                       FROM RfidData 
-                       WHERE time > now() - 5s`;
-        return axios.post(`${API_URL}/influx/query`, { query });
+    getEmergencyStatus(id) {
+        return axios.get(`${MACHINE_URL}/${id}/emergency`, { headers: getAuthHeader() });
     },
 
-    getEmergencyStatus(machineId) {
-        const query = `SELECT Pressed, Module 
-                       FROM EmergencySwitch 
-                       WHERE time > now() - 5s 
-                       GROUP BY Module`;
-        return axios.post(`${API_URL}/influx/query`, { query });
+    async getInfluxData() {
+        const response = await axios.get(`${MACHINE_URL}/influx-data`);
+        return response.data;
+    },
+
+    async getSensorData() {
+        const response = await axios.get('http://localhost:5000/api/sensor-data');
+        return response.data;
     }
 };
