@@ -27,7 +27,13 @@ const routes = [
       { path: 'alert', name: 'alert', component: Alert },
       {path: 'oee-validation', name: 'oee-validation', component: OEEValidation},  
       {path: 'automation-modules', name: 'automation-modules', component: AutomationModules},
-      {path: 'profile', name: 'profile', component: Profile}
+      {path: 'profile', name: 'profile', component: Profile},
+      {
+        path: 'automation-modules/:systemId',
+        name: 'AutomationModules',
+        component: () => import('../views/AutomationModules.vue'),
+        props: true
+      }
     ],
     beforeEnter: (to, from, next) => {
       const token = localStorage.getItem('jwtToken');

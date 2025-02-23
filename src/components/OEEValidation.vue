@@ -57,28 +57,101 @@
       <div class="validation-card">
         <div class="card-header">
           <h3>Business Impact Analysis</h3>
-          <BaselineOEEInput
-            class="baseline-input"
-            :currentBaseline="baselineMetrics"
-            @update:baseline="updateBaseline"
-          />
+          <div class="header-actions">
+            <BaselineOEEInput
+              class="baseline-input"
+              :currentBaseline="baselineMetrics"
+              @update:baseline="updateBaseline"
+            />
+            <Button 
+              icon="pi pi-euro"
+              class="p-button-text p-button-rounded"
+              @click="showROIConfig = true"
+              tooltip="Configure ROI Parameters"
+            />
+          </div>
         </div>
         <div class="metrics-grid">
           <div class="metric">
-            <h4>Production Increase</h4>
-            <div class="value">{{ productionIncrease }}%</div>
+            <h4>Production Change</h4>
+            <div class="value" :class="{ negative: businessImpact.trend.isPositive === false }">
+              {{ businessImpact.productionIncrease }}%
+            </div>
+            <div class="description">vs Baseline</div>
           </div>
           <div class="metric">
-            <h4>Cost Savings</h4>
-            <div class="value">€{{ costSavings.toLocaleString() }}</div>
+            <h4>Financial Impact</h4>
+            <div class="value" :class="{ negative: businessImpact.trend.isPositive === false }">
+              {{ businessImpact.trend.isPositive ? '+' : '-' }}€{{ businessImpact.costSavings }}
+            </div>
+            <div class="description">Annual Impact</div>
           </div>
           <div class="metric">
             <h4>ROI</h4>
-            <div class="value">{{ roi }}%</div>
+            <div class="value" :class="{ negative: businessImpact.trend.isPositive === false }">
+              {{ businessImpact.roi }}%
+            </div>
+            <div class="description">
+              Return on €{{ roiParams.implementationCost.toLocaleString('de-DE') }} Investment
+            </div>
           </div>
         </div>
       </div>
 
+      <Dialog v-model:visible="showROIConfig" header="Configure ROI Parameters" modal>
+        <div class="roi-config-form">
+          <div class="input-group">
+            <label>Hourly Operating Cost</label>
+            <div class="currency-input">
+              <span class="currency-symbol">€</span>
+              <InputNumber 
+                v-model="roiParams.hourlyRate" 
+                :min="0" 
+                :minFractionDigits="2" 
+                :maxFractionDigits="2"
+                placeholder="Enter amount"
+              />
+            </div>
+          </div>
+          <div class="input-group">
+            <label>Working Hours per Day</label>
+            <InputNumber 
+              v-model="roiParams.workingHours" 
+              :min="0" 
+              :max="24"
+              showButtons
+              :step="1"
+            />
+          </div>
+          <div class="input-group">
+            <label>Working Days per Year</label>
+            <InputNumber 
+              v-model="roiParams.workingDays" 
+              :min="0" 
+              :max="365"
+              showButtons
+              :step="1"
+            />
+          </div>
+          <div class="input-group">
+            <label>Implementation Cost</label>
+            <div class="currency-input">
+              <span class="currency-symbol">€</span>
+              <InputNumber 
+                v-model="roiParams.implementationCost" 
+                :min="0"
+                :minFractionDigits="2" 
+                :maxFractionDigits="2"
+                placeholder="Enter amount"
+              />
+            </div>
+          </div>
+        </div>
+        <template #footer>
+          <Button label="Cancel" icon="pi pi-times" @click="showROIConfig = false" class="p-button-text" />
+          <Button label="Save" icon="pi pi-check" @click="saveROIConfig" autofocus />
+        </template>
+      </Dialog>
     
     </div>
   </div>
@@ -87,11 +160,17 @@
 <script>
 import { ref, computed } from 'vue';
 import BaselineOEEInput from './BaselineOEEInput.vue';
+import Dialog from 'primevue/dialog';
+import InputNumber from 'primevue/inputnumber';
+import Button from 'primevue/button';
 
 export default {
   name: 'OEEValidation',
   components: {
-    BaselineOEEInput
+    BaselineOEEInput,
+    Dialog,
+    InputNumber,
+    Button
   },
   props: {
     currentMetrics: {
@@ -178,6 +257,54 @@ export default {
       }
     };
 
+    const calculateBusinessImpact = (currentMetrics, baselineMetrics) => {
+      try {
+        // Production Change calculation
+        const productionChange = ((currentMetrics.oee - baselineMetrics.oee) / baselineMetrics.oee) * 100;
+    
+        // Cost Impact using dynamic parameters
+        const annualOperatingTime = roiParams.value.workingHours * roiParams.value.workingDays;
+        const oeeDifference = currentMetrics.oee - baselineMetrics.oee;
+        const costImpact = (oeeDifference / 100) * roiParams.value.hourlyRate * annualOperatingTime;
+    
+        // ROI using dynamic implementation cost
+        const roi = (costImpact / roiParams.value.implementationCost) * 100;
+    
+        return {
+          productionIncrease: productionChange.toFixed(1),
+          costSavings: costImpact.toLocaleString('de-DE'),
+          roi: roi.toFixed(1),
+          trend: {
+            isPositive: oeeDifference >= 0,
+            difference: Math.abs(oeeDifference).toFixed(1)
+          }
+        };
+      } catch (error) {
+        console.error('Error calculating business impact:', error);
+        return {
+          productionIncrease: '0.0',
+          costSavings: '0',
+          roi: '0.0',
+          trend: { isPositive: false, difference: '0.0' }
+        };
+      }
+    };
+
+    const saveROIConfig = () => {
+      showROIConfig.value = false;
+      // ROI will automatically recalculate due to reactivity
+    };
+
+    const businessImpact = computed(() => calculateBusinessImpact(props.currentMetrics, baselineMetrics.value));
+
+    const showROIConfig = ref(false);
+    const roiParams = ref({
+      hourlyRate: 150,
+      workingHours: 8,
+      workingDays: 250,
+      implementationCost: 50000
+    });
+
     return {
       baselineMetrics,
       improvements,
@@ -186,7 +313,11 @@ export default {
       roi,
       getImprovementClass,
       chartOptions,
-      updateBaseline
+      updateBaseline,
+      businessImpact,
+      showROIConfig,
+      roiParams,
+      saveROIConfig
     };
   }
 };
@@ -266,6 +397,16 @@ export default {
   color: #2196f3;
 }
 
+.value.negative {
+  color: #ef5350;
+}
+
+.description {
+  font-size: 0.8em;
+  color: #666;
+  margin-top: 5px;
+}
+
 .significant-improvement { color: #42b883; }
 .good-improvement { color: #2196f3; }
 .moderate-improvement { color: #ffa726; }
@@ -280,6 +421,31 @@ export default {
 }
 
 /* Add these new styles */
+.roi-config-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+.input-group {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.input-group label {
+  min-width: 200px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Update existing card-header style */
 .card-header {
   display: flex;
   justify-content: space-between;
@@ -287,7 +453,28 @@ export default {
   margin-bottom: 20px;
 }
 
-.card-header h3 {
-  margin: 0;
+/* Add to your existing styles */
+.currency-input {
+  position: relative;
+  display: inline-block;
+}
+
+.currency-symbol {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+  color: #666;
+  pointer-events: none;
+}
+
+:deep(.p-inputnumber .p-inputtext) {
+  padding-left: 25px;
+  width: 200px;
+}
+
+:deep(.p-inputnumber-button) {
+  color: #666;
 }
 </style>

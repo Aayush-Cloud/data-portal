@@ -35,12 +35,6 @@
               </router-link>
             </li>
             <li>
-              <router-link to="/app/automation-modules" class="menu-item" active-class="active">
-                <i class="pi pi-exclamation-circle"></i>
-                <span>Automation modules</span>
-              </router-link>
-            </li>
-            <li>
               <router-link to="/app/alert" class="menu-item" active-class="active">
                 <i class="pi pi-bell"></i>
                 <span>Alerts</span>

@@ -54,28 +54,47 @@
     class="resource-card"
   >
     <div class="resource-details">
-      <h3>{{ machine.name }}</h3>
-      <p>{{ machine.description }}</p>
-    
+      <div class="resource-header">
+        <h3>{{ machine.name }}</h3>
+        <div class="system-metrics">
+          <Tag :severity="getOEESeverity(machine.oee)">
+            OEE: {{ machine.oee }}%
+          </Tag>
+          <Tag :severity="machine.healthStatus === 'healthy' ? 'success' : 'danger'">
+            {{ machine.healthStatus }}
+          </Tag>
+        </div>
+      </div>
+      
+      <!-- Add navigation to modules -->
+      <div class="modules-preview">
+        <h4>Connected Modules</h4>
+        <div class="module-chips">
+          <router-link 
+            v-for="module in machine.modules" 
+            :key="module.id"
+            :to="{ 
+              name: 'AutomationModules', 
+              params: { systemId: machine._id },
+              query: { activeModule: module.name }
+            }"
+            class="module-chip"
+            :class="getModuleStatusClass(module.status)"
+          >
+            {{ module.name }}
+            <span class="module-status">{{ module.status }}</span>
+          </router-link>
+        </div>
+      </div>
     </div>
-
     
-      <div class="status-section">
-      <Tag :severity="machine.healthStatus === 'healthy' ? 'success' : 'danger'">
-        {{ machine.healthStatus }}
-      </Tag>
-      <Tag :severity="machine.status === 'running' ? 'success' : 'danger'">
-        {{ machine.status }}
-      </Tag>
-      <Button 
-        v-if="machine.status === 'stopped'"
-        icon="pi pi-play" 
-        class="p-button-rounded p-button-success p-button-sm"
-        @click="startMachine(machine)"
-        :loading="loadingMachineId === machine._id"
-      />
-    </div>
     <div class="resource-actions">
+      <Button 
+        icon="pi pi-chart-line" 
+        class="p-button-rounded p-button-info" 
+        @click="navigateToModules(machine)"
+        tooltip="View Detailed Analysis"
+      />
       <Button 
         icon="pi pi-info-circle" 
         class="p-button-rounded p-button-info" 
@@ -535,6 +554,25 @@ export default {
     },
 
     // Add similar transform methods for emergency and RFID data
+    getOEESeverity(oee) {
+      if (oee >= 85) return 'success';
+      if (oee >= 60) return 'warning';
+      return 'danger';
+    },
+
+    getModuleStatusClass(status) {
+      return {
+        'running': status === 'running',
+        'stopped': status === 'stopped'
+      };
+    },
+
+    navigateToModules(system) {
+      this.$router.push({
+        name: 'AutomationModules',
+        params: { systemId: system._id }
+      });
+    }
   }
 };
 </script>
@@ -827,5 +865,69 @@ export default {
   align-items: center;
   gap: 0.5rem;
   margin-top: 0.5rem;
+}
+
+/* Add to existing styles */
+.resource-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.system-metrics {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.modules-preview {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--surface-border);
+}
+
+.modules-preview h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
+  color: var(--text-color-secondary);
+}
+
+.module-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.module-chip {
+  text-decoration: none;
+  padding: 0.3rem 0.8rem;
+  border-radius: 1rem;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s;
+}
+
+.module-chip.running {
+  background: var(--green-50);
+  color: var(--green-600);
+  border: 1px solid var(--green-200);
+}
+
+.module-chip.stopped {
+  background: var(--red-50);
+  color: var(--red-600);
+  border: 1px solid var(--red-200);
+}
+
+.module-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.module-status {
+  font-size: 0.8rem;
+  opacity: 0.8;
 }
 </style>
